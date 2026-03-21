@@ -1,0 +1,561 @@
+{% load static %}
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boards — Taskly</title>
+    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <!-- ░░ TOAST ░░ -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+      <span class="toast__icon"></span>
+      <span class="toast__msg"></span>
+      <button class="toast__close" aria-label="Đóng">×</button>
+    </div>
+
+    <!-- ░░ OVERLAY (sidebar mobile / modal) ░░ -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- ════════════════════════════════════════════════════════
+     HEADER
+     ════════════════════════════════════════════════════════ -->
+    <header class="header" id="header">
+      <div class="header__left">
+        <!-- Hamburger (mobile) -->
+        <button class="hamburger" id="hamburger" aria-label="Mở sidebar">
+          <i class="ph-bold ph-list"></i>
+        </button>
+        <!-- Logo -->
+        <a href="index.html" class="logo">
+          <span class="logo__icon"
+            ><i class="ph-bold ph-check-square"></i
+          ></span>
+          <span class="logo__name">Taskly</span>
+        </a>
+      </div>
+
+      <!-- Search bar -->
+      <div class="header__search" id="searchWrap">
+        <i class="ph-bold ph-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-input"
+          placeholder="Tìm kiếm board… (Ctrl+F)"
+          autocomplete="off"
+        />
+        <kbd class="search-kbd">Ctrl F</kbd>
+      </div>
+
+      <div class="header__right">
+        <!-- Theme toggle -->
+        <button class="icon-btn" id="themeToggle" aria-label="Chuyển theme">
+          <i class="ph-bold ph-sun" id="iconSun"></i>
+          <i class="ph-bold ph-moon" id="iconMoon"></i>
+        </button>
+
+        <!-- Notifications -->
+        <button class="icon-btn notif-btn" aria-label="Thông báo">
+          <i class="ph-bold ph-bell"></i>
+          <span class="notif-dot"></span>
+        </button>
+
+        <!-- Create board (desktop) -->
+        <button class="btn btn--primary" id="btnCreateDesktop">
+          <i class="ph-bolds ph-plu"></i>
+          Tạo Board
+        </button>
+
+        <!-- User avatar / menu -->
+        <div class="user-menu" id="userMenuWrap">
+          <button
+            class="user-avatar"
+            id="userAvatarBtn"
+            aria-label="Menu người dùng"
+            aria-expanded="false"
+          >
+            <span id="userInitials">TN</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <div class="user-dropdown__header">
+              <span class="ud-name" id="udName">Taskly User</span>
+              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+            </div>
+            <hr class="ud-divider" />
+            <button>
+              <a href="{% url 'profile' %}" class="ud-item" role="menuitem">
+                <i class="ph-bold ph-user-circle"></i>
+                Hồ sơ
+              </a>
+            </button>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-gear"></i> Cài đặt
+            </button>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-question"></i> Trợ giúp
+            </button>
+            <hr class="ud-divider" />
+            <button
+              class="ud-item ud-item--danger"
+              id="btnLogout"
+              role="menuitem"
+            >
+              <i class="ph-bold ph-sign-out"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════════
+     LAYOUT WRAPPER
+     ════════════════════════════════════════════════════════ -->
+    <div class="app-layout" id="appLayout">
+      <!-- ════ SIDEBAR ════ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__inner">
+          <!-- Collapse toggle (desktop) -->
+          <button
+            class="sidebar__collapse"
+            id="sidebarCollapse"
+            aria-label="Thu gọn sidebar"
+          >
+            <i class="ph-bold ph-sidebar-simple"></i>
+          </button>
+
+          <!-- Navigation groups -->
+          <nav class="sidebar__nav">
+            <p class="sidebar__section-label">Tổng quan</p>
+            <button class="sidebar__item active" data-filter="all">
+              <i class="ph-bold ph-squares-four"></i>
+              <span>Tất cả Board</span>
+              <span class="sidebar__badge" id="badgeAll">0</span>
+            </button>
+            <button class="sidebar__item" data-filter="favorites">
+              <i class="ph-bold ph-star"></i>
+              <span>Yêu thích</span>
+              <span class="sidebar__badge" id="badgeFav">0</span>
+            </button>
+            <button class="sidebar__item" data-filter="archived">
+              <i class="ph-bold ph-archive"></i>
+              <span>Đã lưu trữ</span>
+              <span class="sidebar__badge" id="badgeArchived">0</span>
+            </button>
+
+            <p class="sidebar__section-label">Không gian</p>
+            <button class="sidebar__item" data-filter="personal">
+              <i class="ph-bold ph-user"></i>
+              <span>Cá nhân</span>
+            </button>
+            <button class="sidebar__item" data-filter="team">
+              <i class="ph-bold ph-users-three"></i>
+              <span>Nhóm</span>
+            </button>
+
+            <p class="sidebar__section-label">Khám phá</p>
+            <button
+              class="sidebar__item"
+              onclick="showToast('Tính năng đang phát triển.', 'info')"
+            >
+              <i class="ph-bold ph-trend-up"></i>
+              <span>Phổ biến</span>
+            </button>
+            <button
+              class="sidebar__item"
+              onclick="showToast('Tính năng đang phát triển.', 'info')"
+            >
+              <i class="ph-bold ph-clock-countdown"></i>
+              <span>Gần deadline</span>
+            </button>
+          </nav>
+
+          <!-- Sidebar footer -->
+          <div class="sidebar__footer">
+            <div class="storage-bar">
+              <div class="storage-bar__top">
+                <span>Dung lượng</span>
+                <span class="storage-bar__val">2.4 / 5 GB</span>
+              </div>
+              <div class="storage-bar__track">
+                <div class="storage-bar__fill" style="width: 48%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ════ MAIN CONTENT ════ -->
+      <main class="main" id="main">
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="page-header__left">
+            <h1 class="page-title" id="pageTitle">Tất cả Board</h1>
+            <p class="page-sub" id="pageSub">
+              Quản lý tất cả các dự án của bạn
+            </p>
+          </div>
+          <div class="page-header__right">
+            <!-- View toggle -->
+            <div class="view-toggle">
+              <button
+                class="view-btn active"
+                id="viewGrid"
+                aria-label="Dạng lưới"
+                title="Grid view"
+              >
+                <i class="ph-bold ph-squares-four"></i>
+              </button>
+              <button
+                class="view-btn"
+                id="viewList"
+                aria-label="Dạng danh sách"
+                title="List view"
+              >
+                <i class="ph-bold ph-list-bullets"></i>
+              </button>
+            </div>
+
+            <!-- Sort -->
+            <div class="sort-wrap">
+              <button
+                class="icon-btn sort-btn"
+                id="sortBtn"
+                aria-label="Sắp xếp"
+              >
+                <i class="ph-bold ph-sort-ascending"></i>
+                <span class="sort-label">Mới nhất</span>
+              </button>
+              <div class="sort-dropdown" id="sortDropdown">
+                <button class="sort-item active" data-sort="updated">
+                  Mới cập nhật
+                </button>
+                <button class="sort-item" data-sort="created">Ngày tạo</button>
+                <button class="sort-item" data-sort="alpha">A → Z</button>
+                <button class="sort-item" data-sort="tasks">
+                  Nhiều task nhất
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter -->
+            <button class="icon-btn" id="filterBtn" aria-label="Lọc">
+              <i class="ph-bold ph-funnel"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter chips (shown when active) -->
+        <div class="filter-chips" id="filterChips" style="display: none"></div>
+
+        <!-- Board grid -->
+        <div class="board-grid" id="boardGrid"></div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none">
+          <div class="empty-state__art" aria-hidden="true">
+            <svg
+              width="160"
+              height="130"
+              viewBox="0 0 160 130"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="20"
+                y="40"
+                width="120"
+                height="80"
+                rx="12"
+                fill="var(--surface-2)"
+                stroke="var(--border)"
+                stroke-width="1.5"
+              />
+              <rect
+                x="32"
+                y="56"
+                width="40"
+                height="32"
+                rx="6"
+                fill="var(--accent-light)"
+                stroke="var(--accent)"
+                stroke-width="1.5"
+                stroke-dasharray="4 2"
+              />
+              <rect
+                x="80"
+                y="56"
+                width="48"
+                height="14"
+                rx="5"
+                fill="var(--surface-2)"
+              />
+              <rect
+                x="80"
+                y="76"
+                width="36"
+                height="6"
+                rx="3"
+                fill="var(--border)"
+              />
+              <rect
+                x="80"
+                y="88"
+                width="28"
+                height="6"
+                rx="3"
+                fill="var(--border)"
+              />
+              <!-- Plus icon in dashed box -->
+              <line
+                x1="52"
+                y1="72"
+                x2="52"
+                y2="72"
+                stroke="var(--accent)"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <text
+                x="48"
+                y="77"
+                font-size="18"
+                fill="var(--accent)"
+                font-family="sans-serif"
+              >
+                +
+              </text>
+              <!-- Stars -->
+              <circle
+                cx="140"
+                cy="22"
+                r="3"
+                fill="var(--accent)"
+                opacity=".6"
+              />
+              <circle cx="14" cy="28" r="2" fill="var(--accent)" opacity=".4" />
+              <circle cx="148" cy="50" r="2" fill="var(--amber)" opacity=".5" />
+              <circle cx="8" cy="70" r="3" fill="var(--amber)" opacity=".3" />
+            </svg>
+          </div>
+          <h3 class="empty-state__title" id="emptyTitle">Chưa có board nào</h3>
+          <p class="empty-state__desc" id="emptyDesc">
+            Bắt đầu bằng cách tạo board đầu tiên của bạn và quản lý mọi dự án
+            trong một nơi.
+          </p>
+          <button class="btn btn--primary" id="emptyCreateBtn">
+            <i class="ph-bold ph-plus"></i>
+            Tạo Board đầu tiên
+          </button>
+          <div class="empty-shortcuts">
+            <kbd>Ctrl</kbd> + <kbd>N</kbd> để tạo board nhanh
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- /.app-layout -->
+
+    <!-- ════════════════════════════════════════════════════════
+     FLOATING ACTION BUTTON (mobile)
+     ════════════════════════════════════════════════════════ -->
+    <button class="fab" id="fab" aria-label="Tạo board mới">
+      <i class="ph-bold ph-plus"></i>
+    </button>
+
+    <!-- ════════════════════════════════════════════════════════
+     MODAL — Create / Edit Board
+     ════════════════════════════════════════════════════════ -->
+    <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+      <div
+        class="modal"
+        id="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="modal__header">
+          <h2 class="modal__title" id="modalTitle">Tạo Board mới</h2>
+          <button class="modal__close" id="modalClose" aria-label="Đóng">
+            <i class="ph-bold ph-x"></i>
+          </button>
+        </div>
+        <div class="modal__body">
+          <!-- Board name -->
+          <div class="mfield" id="mfieldName">
+            <label class="mfield__label" for="boardName"
+              >Tên Board <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="boardName"
+              class="mfield__input"
+              placeholder="vd: Sprint Q3, Marketing 2025…"
+              maxlength="50"
+              autocomplete="off"
+            />
+            <div class="mfield__meta">
+              <p class="mfield__error" id="boardNameErr"></p>
+              <span class="mfield__count" id="boardNameCount">0 / 50</span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="mfield">
+            <label class="mfield__label" for="boardDesc"
+              >Mô tả <span class="optional">(tuỳ chọn)</span></label
+            >
+            <textarea
+              id="boardDesc"
+              class="mfield__input mfield__textarea"
+              placeholder="Mô tả ngắn về board này…"
+              rows="3"
+              maxlength="200"
+            ></textarea>
+          </div>
+
+          <!-- Color tag -->
+          <div class="mfield">
+            <label class="mfield__label">Màu nhận biết</label>
+            <div class="color-picker" id="colorPicker">
+              <button
+                class="color-swatch active"
+                data-color="#5b67f7"
+                style="--c: #5b67f7"
+                title="Indigo"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#0ea5e9"
+                style="--c: #0ea5e9"
+                title="Sky"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#22c55e"
+                style="--c: #22c55e"
+                title="Green"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#f59e0b"
+                style="--c: #f59e0b"
+                title="Amber"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#ef4444"
+                style="--c: #ef4444"
+                title="Red"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#ec4899"
+                style="--c: #ec4899"
+                title="Pink"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#8b5cf6"
+                style="--c: #8b5cf6"
+                title="Purple"
+              ></button>
+              <button
+                class="color-swatch"
+                data-color="#14b8a6"
+                style="--c: #14b8a6"
+                title="Teal"
+              ></button>
+            </div>
+          </div>
+
+          <!-- Type -->
+          <div class="mfield">
+            <label class="mfield__label">Loại</label>
+            <div class="type-picker" id="typePicker">
+              <label class="type-opt">
+                <input type="radio" name="boardType" value="personal" checked />
+                <span class="type-card">
+                  <i class="ph-bold ph-user"></i>
+                  <span>Cá nhân</span>
+                </span>
+              </label>
+              <label class="type-opt">
+                <input type="radio" name="boardType" value="team" />
+                <span class="type-card">
+                  <i class="ph-bold ph-users-three"></i>
+                  <span>Nhóm</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="modalCancel">Huỷ</button>
+          <button class="btn btn--primary" id="modalSubmit">
+            <i class="ph-bold ph-rocket-launch"></i>
+            Tạo Board
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+     QUICK PREVIEW POPUP (hover)
+     ════════════════════════════════════════════════════════ -->
+    <div class="quick-preview" id="quickPreview" aria-hidden="true">
+      <div class="qp__header">
+        <div class="qp__dot" id="qpDot"></div>
+        <p class="qp__name" id="qpName"></p>
+      </div>
+      <p class="qp__desc" id="qpDesc"></p>
+      <div class="qp__tasks" id="qpTasks"></div>
+      <div class="qp__stats" id="qpStats"></div>
+      <button class="btn btn--primary qp__open" id="qpOpen">Mở Board →</button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+     BOARD CONTEXT MENU
+     ════════════════════════════════════════════════════════ -->
+    <ul class="context-menu" id="contextMenu" role="menu">
+      <li>
+        <button class="ctx-item" id="ctxEdit">
+          <i class="ph-bold ph-pencil-simple"></i> Đổi tên
+        </button>
+      </li>
+      <li>
+        <button class="ctx-item" id="ctxFav">
+          <i class="ph-bold ph-star"></i> Yêu thích
+        </button>
+      </li>
+      <li>
+        <button class="ctx-item" id="ctxShare">
+          <i class="ph-bold ph-share-network"></i> Chia sẻ
+        </button>
+      </li>
+      <li>
+        <button class="ctx-item" id="ctxArchive">
+          <i class="ph-bold ph-archive"></i> Lưu trữ
+        </button>
+      </li>
+      <li class="ctx-sep"></li>
+      <li>
+        <button class="ctx-item ctx-item--danger" id="ctxDelete">
+          <i class="ph-bold ph-trash"></i> Xóa Board
+        </button>
+      </li>
+    </ul>
+
+    <script src="{% static 'tasks/js/board_list.js' %}?v=999"></script>
+  </body>
+</html>

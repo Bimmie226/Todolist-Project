@@ -1,0 +1,944 @@
+/* ═══════════════════════════════════════════════════════
+   login.css — Taskly Login Page
+   Design: Split-screen — decorative left / clean form right
+   Fonts: Syne (display) · Outfit (body)
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── 1. CSS VARIABLES ─────────────────────────────────── */
+:root {
+  --accent: #5b67f7;
+  --accent-dark: #4454e8;
+  --accent-light: #eef0ff;
+  --accent-glow: rgba(91, 103, 247, 0.28);
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --info: #38bdf8;
+
+  /* Light */
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-2: #f0f1f8;
+  --border: #e4e6ef;
+  --text: #1a1d2e;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+
+  --panel-bg: #1a1d2e; /* dark left panel */
+
+  --font-display: "Syne", sans-serif;
+  --font-body: "Outfit", sans-serif;
+
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.07);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.13);
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.22s;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #1a1d2e;
+  --surface-2: #252840;
+  --border: #2e3147;
+  --text: #f1f2f6;
+  --text-muted: #9095b3;
+  --text-light: #6b7080;
+  --accent-light: #1e2050;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── 2. RESET ──────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100svh;
+  overflow-x: hidden;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+input {
+  font-family: inherit;
+}
+
+/* ─── 3. PAGE FADE-IN ────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.form-wrap {
+  animation: fadeUp 0.6s var(--ease) both;
+}
+
+/* ─── 4. THEME TOGGLE BUTTON ─────────────────────────────── */
+.theme-btn {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 200;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: all var(--dur) var(--ease);
+}
+.theme-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#iconMoon {
+  display: none;
+}
+[data-theme="dark"] #iconSun {
+  display: none;
+}
+[data-theme="dark"] #iconMoon {
+  display: block;
+}
+
+/* ─── 5. LAYOUT ──────────────────────────────────────────── */
+.page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100svh;
+}
+
+/* ─── 6. LEFT PANEL ──────────────────────────────────────── */
+.panel {
+  position: relative;
+  background: var(--panel-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 44px;
+  color: #fff;
+}
+
+/* Blobs */
+.panel__blur {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.blob-a {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, #5b67f7 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+  opacity: 0.45;
+  animation: pulse 8s ease-in-out infinite;
+}
+.blob-b {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #a78bfa 0%, transparent 70%);
+  bottom: 60px;
+  left: -60px;
+  opacity: 0.35;
+  animation: pulse 10s ease-in-out infinite reverse;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.1) translate(12px, -12px);
+  }
+}
+
+/* Grid overlay */
+.panel__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  text-decoration: none;
+  color: #fff;
+  z-index: 1;
+  transition: opacity var(--dur);
+}
+.brand:hover {
+  opacity: 0.8;
+}
+.brand__icon {
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.brand--mobile {
+  color: var(--text);
+  display: none;
+}
+.brand--mobile .brand__name {
+  color: var(--text);
+}
+
+/* Panel center – orbit illustration */
+.panel__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.orbit {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+/* Rings */
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+.ring--outer {
+  inset: 0;
+  animation: spin 18s linear infinite;
+}
+.ring--inner {
+  inset: 36px;
+  border-style: dashed;
+  animation: spin 12s linear infinite reverse;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Orbit dots */
+.ring-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+.rd--1 {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.rd--2 {
+  bottom: -4px;
+  right: 28px;
+  background: #a78bfa;
+  box-shadow: 0 0 12px #a78bfa;
+}
+.rd--3 {
+  top: 50%;
+  left: -4px;
+  transform: translateY(-50%);
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
+}
+
+/* Floating cards */
+.fcard {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-md);
+  padding: 9px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+.fcard i {
+  font-size: 1rem;
+}
+.fcard--1 {
+  top: 0;
+  right: -30px;
+  animation: bob 5s ease-in-out infinite;
+}
+.fcard--1 i {
+  color: var(--green);
+}
+.fcard--2 {
+  bottom: 60px;
+  left: -40px;
+  animation: bob 6s ease-in-out infinite 0.8s;
+}
+.fcard--2 i {
+  color: var(--amber);
+}
+.fcard--3 {
+  bottom: 0;
+  right: -10px;
+  animation: bob 4.5s ease-in-out infinite 1.6s;
+}
+.fcard--3 i {
+  color: #a78bfa;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+/* Quote */
+.panel__quote {
+  font-size: 0.93rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.65);
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  margin-bottom: 24px;
+  z-index: 1;
+  font-style: italic;
+}
+
+/* Social proof */
+.panel__proof {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 1;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+.av-stack {
+  display: flex;
+}
+.av {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  border: 2px solid var(--panel-bg);
+  display: grid;
+  place-items: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #fff;
+  margin-right: -8px;
+  flex-shrink: 0;
+}
+.av--g {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+.av--o {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.av--p {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* ─── 7. FORM SIDE ───────────────────────────────────────── */
+.form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+/* Dark mode: nền tối hơn panel để tương phản rõ ràng */
+[data-theme="dark"] .form-side {
+  background: #0f1117;
+}
+
+.form-wrap {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Header */
+.form-head {
+  margin-bottom: 28px;
+}
+.form-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.form-sub {
+  color: var(--text-muted);
+  font-size: 0.93rem;
+}
+
+/* ─── 8. SOCIAL BUTTONS ──────────────────────────────────── */
+.social-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.social-row--single {
+  grid-template-columns: 1fr;
+}
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  transition: all var(--dur) var(--ease);
+}
+.social-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+  transform: translateY(-2px);
+}
+.social-btn i {
+  font-size: 1.1rem;
+}
+
+/* Divider */
+.divider {
+  position: relative;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+.divider span {
+  position: relative;
+  background: var(--surface);
+  padding: 0 12px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+/* ─── 9. FORM FIELDS ─────────────────────────────────────── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field__label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.forgot-link {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity var(--dur);
+}
+.forgot-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* Input wrapper */
+.field__wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field__icon {
+  position: absolute;
+  left: 13px;
+  font-size: 1rem;
+  color: var(--text-light);
+  pointer-events: none;
+  transition: color var(--dur);
+  z-index: 1;
+}
+
+.field__input {
+  width: 100%;
+  padding: 11px 42px 11px 40px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.93rem;
+  outline: none;
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.field__input::placeholder {
+  color: var(--text-light);
+}
+
+/* Focus state */
+.field__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  background: var(--surface);
+}
+.field__input:focus ~ .field__icon {
+  /* can't do this with CSS order, handled on .field--active */
+}
+.field.active .field__icon {
+  color: var(--accent);
+}
+
+/* Validation states */
+.field--error .field__input {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.field--error .field__icon {
+  color: var(--red);
+}
+
+.field--success .field__input {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+.field--success .field__icon {
+  color: var(--green);
+}
+
+/* Status icon (✓ / ✕) */
+.field__status {
+  position: absolute;
+  right: 42px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity var(--dur);
+  pointer-events: none;
+}
+.field--error .field__status {
+  content: "✕";
+  color: var(--red);
+  opacity: 1;
+}
+.field--success .field__status {
+  content: "✓";
+  color: var(--green);
+  opacity: 1;
+}
+
+/* Error message */
+.field__error {
+  font-size: 0.78rem;
+  color: var(--red);
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+.field__error.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* Eye button */
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  color: var(--text-light);
+  border-radius: var(--r-sm);
+  transition:
+    color var(--dur),
+    background var(--dur);
+}
+.eye-btn:hover {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+#eyeClose {
+  display: none;
+}
+.pw-visible #eyeOpen {
+  display: none;
+}
+.pw-visible #eyeClose {
+  display: block;
+}
+
+/* ─── 10. REMEMBER ME ────────────────────────────────────── */
+.remember-row {
+  margin-top: -4px;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+.checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  transition: all var(--dur) var(--ease);
+}
+.checkbox-label input:checked + .checkbox-custom {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox-label input:checked + .checkbox-custom::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+  display: block;
+}
+
+/* ─── 11. LOGIN BUTTON ───────────────────────────────────── */
+.btn-login {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--r-md);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  box-shadow: 0 4px 18px var(--accent-glow);
+  transition: all var(--dur) var(--ease);
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.btn-login::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.15)
+  );
+  opacity: 0;
+  transition: opacity var(--dur);
+}
+.btn-login:hover:not(:disabled) {
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 24px var(--accent-glow);
+}
+.btn-login:hover::after {
+  opacity: 1;
+}
+.btn-login:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-login:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Text / Loader swap */
+.btn-login__loader {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.btn-login__loader span {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  animation: dotBounce 1s ease-in-out infinite;
+}
+.btn-login__loader span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.btn-login__loader span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  40% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+}
+
+.btn-login.loading .btn-login__text {
+  display: none;
+}
+.btn-login.loading .btn-login__loader {
+  display: flex;
+}
+.btn-login__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ─── 12. FORM FOOTER ─────────────────────────────────────── */
+.form-footer {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 22px;
+}
+.link-accent {
+  color: var(--accent);
+  font-weight: 600;
+  transition: opacity var(--dur);
+}
+.link-accent:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* ─── 13. TOAST ──────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 340px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  font-weight: 500;
+  pointer-events: none;
+  transform: translateY(16px) scale(0.97);
+  opacity: 0;
+  transition: all 0.35s var(--ease);
+}
+.toast.show {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast--success {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+.toast--error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.toast--info {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.toast__icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+.toast--success .toast__icon {
+  color: var(--green);
+}
+.toast--error .toast__icon {
+  color: var(--red);
+}
+.toast--info .toast__icon {
+  color: var(--info);
+}
+
+/* ─── 14. RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 860px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    display: none;
+  }
+  .form-side {
+    padding: 32px 24px;
+    min-height: 100svh;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .form-wrap {
+    max-width: 100%;
+    padding-top: 56px;
+  }
+  .brand--mobile {
+    display: flex;
+    margin-bottom: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .social-row {
+    grid-template-columns: 1fr;
+  }
+  .toast {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+}
+
+/* ─── DARK MODE: form internals contrast vs #0f1117 bg ─────── */
+[data-theme="dark"] .form-wrap .field__input {
+  background: #1a1d2e;
+  border-color: #2e3147;
+}
+[data-theme="dark"] .form-wrap .field__input:focus {
+  background: #1e2235;
+  border-color: var(--accent);
+}
+[data-theme="dark"] .form-wrap .social-btn {
+  background: #1a1d2e;
+  border-color: #2e3147;
+}
+[data-theme="dark"] .form-wrap .divider span {
+  background: #0f1117;
+}
+[data-theme="dark"] .form-wrap .checkbox-custom {
+  background: #1a1d2e;
+  border-color: #2e3147;
+}

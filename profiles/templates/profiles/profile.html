@@ -1,0 +1,611 @@
+{% load static %}
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hồ sơ — Taskly</title>
+    <!-- Reuse shared layout -->
+    <link
+      rel="stylesheet"
+      href="{% static 'tasks/css/board_list.css' %}?v=999"
+    />
+    <!-- Profile-specific styles -->
+    <link rel="stylesheet" href="{% static 'profiles/css/profile.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <!-- ░░ TOAST ░░ -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+      <span class="toast__icon"></span>
+      <span class="toast__msg"></span>
+      <button class="toast__close" aria-label="Đóng">×</button>
+    </div>
+
+    <!-- ░░ OVERLAY ░░ -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- ══════════════════════════════════════════════════════
+     HEADER — identical to board_list
+     ══════════════════════════════════════════════════════ -->
+    <header class="header" id="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Mở sidebar">
+          <i class="ph-bold ph-list"></i>
+        </button>
+        <a href="{% url 'board_list' %}" class="logo">
+          <span class="logo__icon"
+            ><i class="ph-bold ph-check-square"></i
+          ></span>
+          <span class="logo__name">Taskly</span>
+        </a>
+      </div>
+
+      <div class="header__search">
+        <i class="ph-bold ph-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-input"
+          placeholder="Tìm kiếm…"
+          autocomplete="off"
+        />
+        <kbd class="search-kbd">Ctrl F</kbd>
+      </div>
+
+      <div class="header__right">
+        <!-- Dark mode toggle -->
+        <button class="icon-btn" id="themeToggle" aria-label="Chuyển theme">
+          <i class="ph-bold ph-sun" id="iconSun"></i>
+          <i class="ph-bold ph-moon" id="iconMoon"></i>
+        </button>
+
+        <button class="icon-btn notif-btn" aria-label="Thông báo">
+          <i class="ph-bold ph-bell"></i>
+          <span class="notif-dot"></span>
+        </button>
+
+        <a href="{% url 'board_list' %}" class="btn btn--primary">
+          <i class="ph-bold ph-squares-four"></i>
+          Boards
+        </a>
+
+        <!-- User menu -->
+        <div class="user-menu" id="userMenuWrap">
+          <button
+            class="user-avatar"
+            id="userAvatarBtn"
+            aria-label="Menu người dùng"
+            aria-expanded="false"
+          >
+            <img
+              id="headerAvatarImg"
+              src=""
+              alt=""
+              style="
+                display: none;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 50%;
+              "
+            />
+            <span id="userInitials">TN</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <div class="user-dropdown__header">
+              <span class="ud-name" id="udName">Taskly User</span>
+              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+            </div>
+            <hr class="ud-divider" />
+            <a
+              href="{% url 'profile' %}"
+              class="ud-item ud-item--active"
+              role="menuitem"
+            >
+              <i class="ph-bold ph-user-circle"></i> Hồ sơ
+            </a>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-gear"></i> Cài đặt
+            </button>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-question"></i> Trợ giúp
+            </button>
+            <hr class="ud-divider" />
+            <button
+              class="ud-item ud-item--danger"
+              id="btnLogout"
+              role="menuitem"
+            >
+              <i class="ph-bold ph-sign-out"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════
+     APP LAYOUT
+     ══════════════════════════════════════════════════════ -->
+    <div class="app-layout" id="appLayout">
+      <!-- ════ SIDEBAR — identical to board_list ════ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__inner">
+          <button
+            class="sidebar__collapse"
+            id="sidebarCollapse"
+            aria-label="Thu gọn sidebar"
+          >
+            <i class="ph-bold ph-sidebar-simple"></i>
+          </button>
+
+          <nav class="sidebar__nav">
+            <p class="sidebar__section-label">Tổng quan</p>
+            <a href="{% url 'board_list' %}" class="sidebar__item">
+              <i class="ph-bold ph-squares-four"></i>
+              <span>Tất cả Board</span>
+              <span class="sidebar__badge" id="badgeAll">—</span>
+            </a>
+            <a href="{% url 'board_list' %}#favorites" class="sidebar__item">
+              <i class="ph-bold ph-star"></i>
+              <span>Yêu thích</span>
+            </a>
+            <a href="{% url 'board_list' %}#archived" class="sidebar__item">
+              <i class="ph-bold ph-archive"></i>
+              <span>Đã lưu trữ</span>
+            </a>
+
+            <p class="sidebar__section-label">Không gian</p>
+            <a
+              href="{% url 'board_list' %}?filter=personal"
+              class="sidebar__item"
+            >
+              <i class="ph-bold ph-user"></i>
+              <span>Cá nhân</span>
+            </a>
+            <a href="{% url 'board_list' %}?filter=team" class="sidebar__item">
+              <i class="ph-bold ph-users-three"></i>
+              <span>Nhóm</span>
+            </a>
+
+            <p class="sidebar__section-label">Tài khoản</p>
+            <a href="{% url 'profile' %}" class="sidebar__item active">
+              <i class="ph-bold ph-user-circle"></i>
+              <span>Hồ sơ cá nhân</span>
+            </a>
+            <button class="sidebar__item" onclick="openEditMode()">
+              <i class="ph-bold ph-pencil-simple"></i>
+              <span>Chỉnh sửa hồ sơ</span>
+            </button>
+            <button class="sidebar__item" id="sidebarThemeBtn">
+              <i class="ph-bold ph-palette"></i>
+              <span>Giao diện</span>
+              <span class="sidebar__badge" id="sidebarThemeLabel">Sáng</span>
+            </button>
+          </nav>
+
+          <div class="sidebar__footer">
+            <div class="storage-bar">
+              <div class="storage-bar__top">
+                <span>Hoàn thiện hồ sơ</span>
+                <span class="storage-bar__val" id="sidebarCompletion">0%</span>
+              </div>
+              <div class="storage-bar__track">
+                <div
+                  class="storage-bar__fill"
+                  id="sidebarCompletionBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ════ MAIN CONTENT — Profile ════ -->
+      <main class="main" id="main">
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="page-header__left">
+            <h1 class="page-title">Hồ sơ cá nhân</h1>
+            <p class="page-sub">
+              Quản lý thông tin và tuỳ chỉnh tài khoản của bạn
+            </p>
+          </div>
+          <div class="page-header__right">
+            <!-- <button
+              class="btn btn--ghost"
+              id="btnEditToggle"
+              onclick="openEditMode()"
+            >
+              <i class="ph-bold ph-pencil-simple"></i>
+              Chỉnh sửa
+            </button> -->
+          </div>
+        </div>
+
+        <!-- ── PROFILE CONTENT ── -->
+        <div class="profile-layout">
+          <!-- LEFT: Avatar + completion card -->
+          <div class="profile-left">
+            <!-- Avatar card -->
+            <div class="profile-avatar-card" id="avatarCard">
+              <div class="avatar-ring" id="avatarRing">
+                <div class="avatar-wrap" id="avatarWrap">
+                  <img
+                    id="avatarImg"
+                    src=""
+                    alt="Avatar"
+                    class="avatar-img"
+                    style="display: none"
+                  />
+                  <div id="avatarInitials" class="avatar-initials">TN</div>
+                </div>
+                <!-- Edit overlay (shown on hover in edit mode) -->
+                <label
+                  class="avatar-edit-overlay"
+                  id="avatarEditOverlay"
+                  for="avatarFileInput"
+                  title="Đổi ảnh đại diện"
+                >
+                  <i class="ph-bold ph-camera"></i>
+                  <span>Đổi ảnh</span>
+                </label>
+                <input
+                  type="file"
+                  id="avatarFileInput"
+                  accept="image/*"
+                  class="hidden-file-input"
+                />
+              </div>
+
+              <h2 class="profile-display-name" id="displayName">Guest User</h2>
+              <p class="profile-display-email" id="displayEmail">—</p>
+
+              <!-- Joined date -->
+              <div class="profile-joined">
+                <i class="ph-bold ph-calendar-check"></i>
+                <span id="displayJoined">Tham gia hôm nay</span>
+              </div>
+            </div>
+
+            <!-- Completion card -->
+            <div class="completion-card">
+              <div class="completion-card__header">
+                <span class="completion-card__title">
+                  <i class="ph-bold ph-chart-pie-slice"></i>
+                  Độ hoàn thiện hồ sơ
+                </span>
+                <span class="completion-pct" id="completionPct">0%</span>
+              </div>
+              <div class="completion-bar">
+                <div
+                  class="completion-bar__fill"
+                  id="completionBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <ul class="completion-checklist" id="completionChecklist">
+                <!-- Injected by JS -->
+              </ul>
+            </div>
+
+            <!-- Theme card -->
+            <div class="theme-card">
+              <div class="theme-card__header">
+                <i class="ph-bold ph-palette"></i>
+                <span>Giao diện</span>
+              </div>
+              <div class="theme-options">
+                <button class="theme-option" id="themeLight" data-theme="light">
+                  <div class="theme-option__preview theme-preview--light">
+                    <div class="tp-header"></div>
+                    <div class="tp-body">
+                      <div class="tp-bar"></div>
+                      <div class="tp-bar tp-bar--short"></div>
+                    </div>
+                  </div>
+                  <span>Sáng</span>
+                  <i class="ph-bold ph-check theme-option__check"></i>
+                </button>
+                <button class="theme-option" id="themeDark" data-theme="dark">
+                  <div class="theme-option__preview theme-preview--dark">
+                    <div class="tp-header"></div>
+                    <div class="tp-body">
+                      <div class="tp-bar"></div>
+                      <div class="tp-bar tp-bar--short"></div>
+                    </div>
+                  </div>
+                  <span>Tối</span>
+                  <i class="ph-bold ph-check theme-option__check"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- /.profile-left -->
+
+          <!-- RIGHT: Info panels -->
+          <div class="profile-right">
+            <!-- ── VIEW MODE ── -->
+            <div id="viewMode">
+              <!-- Personal info card -->
+              <div class="info-card">
+                <div class="info-card__header">
+                  <h3 class="info-card__title">
+                    <i class="ph-bold ph-identification-card"></i>
+                    Thông tin cá nhân
+                  </h3>
+                  <button
+                    class="btn btn--ghost btn--sm"
+                    onclick="openEditMode()"
+                  >
+                    <i class="ph-bold ph-pencil-simple"></i> Sửa
+                  </button>
+                </div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-user"></i> Họ và tên</span
+                    >
+                    <span class="info-item__value" id="infoName">—</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-envelope"></i> Email</span
+                    >
+                    <span class="info-item__value" id="infoEmail">—</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-phone"></i> Số điện thoại</span
+                    >
+                    <span class="info-item__value" id="infoPhone">—</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-cake"></i> Ngày sinh</span
+                    >
+                    <span class="info-item__value" id="infoBirthDate">—</span>
+                  </div>
+                  <div class="info-item info-item--full">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-map-pin"></i> Địa chỉ</span
+                    >
+                    <span class="info-item__value" id="infoAddress">—</span>
+                  </div>
+                  <div class="info-item info-item--full">
+                    <span class="info-item__label"
+                      ><i class="ph-bold ph-info"></i> Giới thiệu</span
+                    >
+                    <span class="info-item__value" id="infoBio">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stats card -->
+              <div class="info-card">
+                <div class="info-card__header">
+                  <h3 class="info-card__title">
+                    <i class="ph-bold ph-chart-bar"></i>
+                    Hoạt động
+                  </h3>
+                </div>
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <span class="stat-item__num" id="statBoards">0</span>
+                    <span class="stat-item__label">Boards</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-item__num" id="statTasks">0</span>
+                    <span class="stat-item__label">Tổng Tasks</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-item__num" id="statDone">0</span>
+                    <span class="stat-item__label">Hoàn thành</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-item__num" id="statStreak">0</span>
+                    <span class="stat-item__label">Ngày liên tiếp</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /#viewMode -->
+
+            <!-- ── EDIT MODE ── -->
+            <div id="editMode" class="edit-mode" style="display: none">
+              <div class="info-card">
+                <div class="info-card__header">
+                  <h3 class="info-card__title">
+                    <i class="ph-bold ph-pencil-simple"></i>
+                    Chỉnh sửa hồ sơ
+                  </h3>
+                </div>
+
+                <form id="profileForm" novalidate>
+                  <!-- Avatar URL fallback -->
+                  <div class="pfield">
+                    <label class="pfield__label" for="fAvatarUrl">
+                      <i class="ph-bold ph-link"></i>
+                      URL ảnh đại diện
+                      <span class="optional">(hoặc upload ở bên trái)</span>
+                    </label>
+                    <input
+                      type="url"
+                      id="fAvatarUrl"
+                      class="pfield__input"
+                      placeholder="https://example.com/avatar.jpg"
+                    />
+                  </div>
+
+                  <!-- Name -->
+                  <div class="pfield" id="pfieldName">
+                    <label class="pfield__label" for="fName">
+                      <i class="ph-bold ph-user"></i>
+                      Họ và tên <span class="required">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="fName"
+                      class="pfield__input"
+                      placeholder="Nguyễn Văn A"
+                      maxlength="60"
+                      autocomplete="name"
+                    />
+                    <p class="pfield__error" id="fNameErr"></p>
+                  </div>
+
+                  <!-- Email -->
+                  <div class="pfield" id="pfieldEmail">
+                    <label class="pfield__label" for="fEmail">
+                      <i class="ph-bold ph-envelope"></i>
+                      Email <span class="required">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      id="fEmail"
+                      class="pfield__input"
+                      placeholder="ban@email.com"
+                      autocomplete="email"
+                    />
+                    <p class="pfield__error" id="fEmailErr"></p>
+                  </div>
+
+                  <!-- Phone + Birthday row -->
+                  <div class="pfield-row">
+                    <div class="pfield" id="pfieldPhone">
+                      <label class="pfield__label" for="fPhone">
+                        <i class="ph-bold ph-phone"></i>
+                        Số điện thoại
+                      </label>
+                      <input
+                        type="tel"
+                        id="fPhone"
+                        class="pfield__input"
+                        placeholder="0912 345 678"
+                        autocomplete="tel"
+                      />
+                      <p class="pfield__error" id="fPhoneErr"></p>
+                    </div>
+                    <div class="pfield">
+                      <label class="pfield__label" for="fBirthDate">
+                        <i class="ph-bold ph-cake"></i>
+                        Ngày sinh
+                      </label>
+                      <input
+                        type="date"
+                        id="fBirthDate"
+                        class="pfield__input"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Address -->
+                  <div class="pfield">
+                    <label class="pfield__label" for="fAddress">
+                      <i class="ph-bold ph-map-pin"></i>
+                      Địa chỉ
+                    </label>
+                    <input
+                      type="text"
+                      id="fAddress"
+                      class="pfield__input"
+                      placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                      autocomplete="address-line1"
+                    />
+                  </div>
+
+                  <!-- Bio -->
+                  <div class="pfield">
+                    <label class="pfield__label" for="fBio">
+                      <i class="ph-bold ph-info"></i>
+                      Giới thiệu bản thân
+                      <span class="optional">(tuỳ chọn)</span>
+                    </label>
+                    <textarea
+                      id="fBio"
+                      class="pfield__input pfield__textarea"
+                      placeholder="Mô tả ngắn về bạn…"
+                      rows="3"
+                      maxlength="300"
+                    ></textarea>
+                    <div class="pfield__count-wrap">
+                      <span class="pfield__count" id="fBioCount">0 / 300</span>
+                    </div>
+                  </div>
+
+                  <!-- Theme toggle in form -->
+                  <div class="pfield">
+                    <label class="pfield__label">
+                      <i class="ph-bold ph-palette"></i>
+                      Giao diện
+                    </label>
+                    <div class="theme-toggle-row">
+                      <label class="toggle-switch" id="themeToggleSwitch">
+                        <input type="checkbox" id="fThemeDark" />
+                        <span class="toggle-track">
+                          <span class="toggle-thumb">
+                            <i
+                              class="ph-bold ph-sun toggle-icon toggle-icon--light"
+                            ></i>
+                            <i
+                              class="ph-bold ph-moon toggle-icon toggle-icon--dark"
+                            ></i>
+                          </span>
+                        </span>
+                        <span class="toggle-label" id="toggleLabel"
+                          >Chế độ Sáng</span
+                        >
+                      </label>
+                    </div>
+                  </div>
+                </form>
+
+                <!-- Form actions -->
+                <div class="edit-actions">
+                  <label class="autosave-label">
+                    <input type="checkbox" id="autoSaveCheck" />
+                    <span>Tự động lưu</span>
+                  </label>
+                  <div class="edit-actions__btns">
+                    <button class="btn btn--ghost" id="btnCancelEdit">
+                      <i class="ph-bold ph-x"></i> Huỷ
+                    </button>
+                    <button class="btn btn--primary" id="btnSaveProfile">
+                      <i class="ph-bold ph-floppy-disk"></i> Lưu thay đổi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /#editMode -->
+          </div>
+          <!-- /.profile-right -->
+        </div>
+        <!-- /.profile-layout -->
+      </main>
+    </div>
+    <!-- /.app-layout -->
+
+    <!-- FAB (mobile) -->
+    <button
+      class="fab"
+      id="fab"
+      aria-label="Chỉnh sửa hồ sơ"
+      onclick="openEditMode()"
+    >
+      <i class="ph-bold ph-pencil-simple"></i>
+    </button>
+
+    <script src="{% static 'profiles/js/profile.js' %}?v=999"></script>
+  </body>
+</html>

@@ -1,0 +1,243 @@
+{% load static %}
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập — Taskly</title>
+    <link rel="stylesheet" href="{% static 'accounts/css/login.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <!-- ░░ DARK MODE TOGGLE ░░ -->
+    <button
+      class="theme-btn"
+      id="themeToggle"
+      aria-label="Chuyển chế độ tối/sáng"
+    >
+      <i class="ph-bold ph-sun" id="iconSun"></i>
+      <i class="ph-bold ph-moon" id="iconMoon"></i>
+    </button>
+
+    <!-- ░░ TOAST ░░ -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+      <span class="toast__icon"></span>
+      <span class="toast__msg"></span>
+    </div>
+
+    <div class="page">
+      <!-- ════ LEFT PANEL — decorative ════ -->
+      <aside class="panel" aria-hidden="true">
+        <div class="panel__blur blob-a"></div>
+        <div class="panel__blur blob-b"></div>
+        <div class="panel__grid"></div>
+
+        <!-- Brand -->
+        <a href="{% url 'home' %}" class="brand">
+          <span class="brand__icon"
+            ><i class="ph-bold ph-check-square"></i
+          ></span>
+          <span class="brand__name">Taskly</span>
+        </a>
+
+        <!-- Central illustration -->
+        <div class="panel__center">
+          <div class="orbit">
+            <!-- Floating cards -->
+            <div class="fcard fcard--1">
+              <i class="ph-bold ph-check-circle"></i>
+              <span>Deploy v2.1 ✓</span>
+            </div>
+            <div class="fcard fcard--2">
+              <i class="ph-bold ph-bell-ringing"></i>
+              <span>Meeting lúc 14:00</span>
+            </div>
+            <div class="fcard fcard--3">
+              <i class="ph-bold ph-chart-line-up"></i>
+              <span>+24% tuần này</span>
+            </div>
+            <!-- Central ring -->
+            <div class="ring ring--outer"></div>
+            <div class="ring ring--inner"></div>
+            <div class="ring-dot rd--1"></div>
+            <div class="ring-dot rd--2"></div>
+            <div class="ring-dot rd--3"></div>
+          </div>
+        </div>
+
+        <!-- Tagline -->
+        <blockquote class="panel__quote">
+          "Bắt đầu ngày mới với<br />danh sách việc cần làm rõ ràng."
+        </blockquote>
+
+        <!-- Social proof -->
+        <div class="panel__proof">
+          <div class="av-stack">
+            <span class="av">TN</span>
+            <span class="av av--g">ML</span>
+            <span class="av av--o">KD</span>
+            <span class="av av--p">HM</span>
+          </div>
+          <p>120.000+ người dùng tin tưởng</p>
+        </div>
+      </aside>
+
+      <!-- ════ RIGHT PANEL — form ════ -->
+      <main class="form-side">
+        <div class="form-wrap">
+          <!-- Mobile brand (hidden on desktop) -->
+          <a href="{% url 'home' %}" class="brand brand--mobile">
+            <span class="brand__icon"
+              ><i class="ph-bold ph-check-square"></i
+            ></span>
+            <span class="brand__name">Taskly</span>
+          </a>
+
+          <!-- Header -->
+          <div class="form-head">
+            <h1 class="form-title">Chào mừng trở lại 👋</h1>
+            <p class="form-sub">
+              Đăng nhập để tiếp tục quản lý công việc của bạn.
+            </p>
+          </div>
+
+          <!-- Social login shortcuts -->
+          <div class="social-row social-row--single">
+            <button
+              class="social-btn"
+              type="button"
+              onclick="showToast('Google login chưa được tích hợp.', 'info')"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              Đăng nhập với Google
+            </button>
+          </div>
+
+          <!-- Divider -->
+          <div class="divider"><span>hoặc đăng nhập bằng tài khoản</span></div>
+
+          <!-- LOGIN FORM -->
+          <form method="POST" id="loginForm" class="login-form">
+            {% csrf_token %}
+
+            <!-- Username field -->
+            <div class="field" id="fieldUsername">
+              <label for="username" class="field__label">Tên đăng nhập</label>
+              <div class="field__wrap">
+                <span class="field__icon"><i class="ph-bold ph-user"></i></span>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  class="field__input"
+                  placeholder="Nhập tên đăng nhập"
+                  autocomplete="username"
+                  spellcheck="false"
+                  required
+                />
+                <span class="field__status" aria-hidden="true"></span>
+              </div>
+              <p class="field__error" id="usernameErr" role="alert"></p>
+            </div>
+
+            <!-- Password field -->
+            <div class="field" id="fieldPassword">
+              <label for="password" class="field__label">
+                Mật khẩu
+                <a
+                  href="{% url 'forgot_password' %}"
+                  class="forgot-link"
+                  tabindex="-1"
+                  >Quên mật khẩu?</a
+                >
+              </label>
+              <div class="field__wrap">
+                <span class="field__icon"
+                  ><i class="ph-bold ph-lock-key"></i
+                ></span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="field__input"
+                  placeholder="Tối thiểu 6 ký tự"
+                  autocomplete="current-password"
+                  required
+                />
+                <!-- Toggle show/hide password -->
+                <button
+                  type="button"
+                  class="eye-btn"
+                  id="eyeBtn"
+                  aria-label="Hiện/ẩn mật khẩu"
+                >
+                  <i class="ph-bold ph-eye" id="eyeOpen"></i>
+                  <i class="ph-bold ph-eye-slash" id="eyeClose"></i>
+                </button>
+              </div>
+              <p class="field__error" id="pwErr" role="alert"></p>
+            </div>
+
+            <!-- Remember me -->
+            <div class="remember-row">
+              <label class="checkbox-label">
+                <input type="checkbox" id="rememberMe" />
+                <span class="checkbox-custom"></span>
+                Ghi nhớ đăng nhập
+              </label>
+            </div>
+
+            <!-- Submit button -->
+            <button type="submit" class="btn-login" id="btnLogin">
+              <span class="btn-login__text">
+                <i class="ph-bold ph-sign-in"></i>
+                Đăng nhập
+              </span>
+              <span class="btn-login__loader" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+            </button>
+          </form>
+
+          <!-- Footer link -->
+          <p class="form-footer">
+            Chưa có tài khoản?
+            <a href="{% url 'register' %}" class="link-accent"
+              >Tạo tài khoản miễn phí</a
+            >
+          </p>
+        </div>
+        <!-- /.form-wrap -->
+      </main>
+    </div>
+    <!-- /.page -->
+
+    <script src="{% static 'accounts/js/login.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,609 @@
+{% load static %}
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tasks — Taskly</title>
+    <!-- Reuse shared layout styles from board_list -->
+    <link
+      rel="stylesheet"
+      href="{% static 'tasks/css/board_list.css' %}?v=999"
+    />
+    <!-- Task-specific styles (extend, never override layout) -->
+    <link
+      rel="stylesheet"
+      href="{% static 'tasks/css/task_list.css' %}?v=999"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <!-- ░░ TOAST ░░ -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+      <span class="toast__icon"></span>
+      <span class="toast__msg"></span>
+      <button class="toast__close" aria-label="Đóng">×</button>
+    </div>
+
+    <!-- ░░ OVERLAY ░░ -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- ══════════════════════════════════════════════════════
+     HEADER — identical to board_list
+     ══════════════════════════════════════════════════════ -->
+    <header class="header" id="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Mở sidebar">
+          <i class="ph-bold ph-list"></i>
+        </button>
+        <a href="{% url 'board_list' %}" class="logo">
+          <span class="logo__icon"
+            ><i class="ph-bold ph-check-square"></i
+          ></span>
+          <span class="logo__name">Taskly</span>
+        </a>
+      </div>
+
+      <div class="header__search">
+        <i class="ph-bold ph-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-input"
+          placeholder="Tìm kiếm task… (Ctrl+F)"
+          autocomplete="off"
+        />
+        <kbd class="search-kbd">Ctrl F</kbd>
+      </div>
+
+      <div class="header__right">
+        <button class="icon-btn" id="themeToggle" aria-label="Chuyển theme">
+          <i class="ph-bold ph-sun" id="iconSun"></i>
+          <i class="ph-bold ph-moon" id="iconMoon"></i>
+        </button>
+        <button class="icon-btn notif-btn" aria-label="Thông báo">
+          <i class="ph-bold ph-bell"></i>
+          <span class="notif-dot"></span>
+        </button>
+        <button class="btn btn--primary" id="btnCreateTask">
+          <i class="ph-bold ph-plus"></i>
+          Tạo Task
+        </button>
+        <div class="user-menu" id="userMenuWrap">
+          <button class="user-avatar" id="userAvatarBtn" aria-expanded="false">
+            <span id="userInitials">TN</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <div class="user-dropdown__header">
+              <span class="ud-name" id="udName">Taskly User</span>
+              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+            </div>
+            <hr class="ud-divider" />
+            <button class="ud-item">
+              <i class="ph-bold ph-user-circle"></i> Hồ sơ
+            </button>
+            <button class="ud-item">
+              <i class="ph-bold ph-gear"></i> Cài đặt
+            </button>
+            <hr class="ud-divider" />
+            <button class="ud-item ud-item--danger" id="btnLogout">
+              <i class="ph-bold ph-sign-out"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════
+     LAYOUT — identical sidebar, new main
+     ══════════════════════════════════════════════════════ -->
+    <div class="app-layout" id="appLayout">
+      <!-- ════ SIDEBAR — reused from board_list ════ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__inner">
+          <button class="sidebar__collapse" id="sidebarCollapse">
+            <i class="ph-bold ph-sidebar-simple"></i>
+          </button>
+
+          <!-- Board list in sidebar for quick navigation -->
+          <nav class="sidebar__nav" id="sidebarNav">
+            <p class="sidebar__section-label">Boards</p>
+            <a href="{% url 'board_list' %}" class="sidebar__item">
+              <i class="ph-bold ph-arrow-left"></i>
+              <span>Quay lại Boards</span>
+            </a>
+            <hr class="sidebar__divider" />
+            <p class="sidebar__section-label">Board hiện tại</p>
+            <!-- Board info injected by JS -->
+            <div id="sidebarBoardInfo" class="sidebar__board-info"></div>
+
+            <hr class="sidebar__divider" />
+            <p class="sidebar__section-label">Lọc nhanh</p>
+            <button class="sidebar__item active" data-view="all">
+              <i class="ph-bold ph-list-bullets"></i>
+              <span>Tất cả</span>
+              <span class="sidebar__badge" id="badgeAll">0</span>
+            </button>
+            <button class="sidebar__item" data-view="todo">
+              <i class="ph-bold ph-circle-dashed"></i>
+              <span>Cần làm</span>
+              <span class="sidebar__badge" id="badgeTodo">0</span>
+            </button>
+            <button class="sidebar__item" data-view="in_progress">
+              <i class="ph-bold ph-spinner-gap"></i>
+              <span>Đang làm</span>
+              <span class="sidebar__badge" id="badgeProgress">0</span>
+            </button>
+            <button class="sidebar__item" data-view="done">
+              <i class="ph-bold ph-check-circle"></i>
+              <span>Hoàn thành</span>
+              <span class="sidebar__badge" id="badgeDone">0</span>
+            </button>
+            <button class="sidebar__item" data-view="overdue">
+              <i class="ph-bold ph-warning-circle"></i>
+              <span>Quá hạn</span>
+              <span class="sidebar__badge sidebar__badge--red" id="badgeOverdue"
+                >0</span
+              >
+            </button>
+
+            <hr class="sidebar__divider" />
+            <p class="sidebar__section-label">Ưu tiên</p>
+            <button class="sidebar__item" data-view="high">
+              <i class="ph-bold ph-arrow-circle-up" style="color: #ef4444"></i>
+              <span>Ưu tiên cao</span>
+            </button>
+            <button class="sidebar__item" data-view="medium">
+              <i class="ph-bold ph-minus-circle" style="color: #f59e0b"></i>
+              <span>Ưu tiên trung bình</span>
+            </button>
+            <button class="sidebar__item" data-view="low">
+              <i
+                class="ph-bold ph-arrow-circle-down"
+                style="color: #22c55e"
+              ></i>
+              <span>Ưu tiên thấp</span>
+            </button>
+          </nav>
+
+          <!-- Sidebar footer: progress stats -->
+          <div class="sidebar__footer" id="sidebarFooter">
+            <div class="task-progress-mini">
+              <div class="task-progress-mini__label">
+                <span>Tiến độ board</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div class="storage-bar__track">
+                <div
+                  class="storage-bar__fill"
+                  id="progressBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ════ MAIN CONTENT — Task area ════ -->
+      <main class="main" id="main">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+          <a href="{% url 'board_list' %}" class="breadcrumb__item">
+            <i class="ph-bold ph-squares-four"></i>
+            Boards
+          </a>
+          <i class="ph-bold ph-caret-right breadcrumb__sep"></i>
+          <span
+            class="breadcrumb__item breadcrumb__item--active"
+            id="breadcrumbBoard"
+            >…</span
+          >
+          <i class="ph-bold ph-caret-right breadcrumb__sep"></i>
+          <span class="breadcrumb__item breadcrumb__item--active">Tasks</span>
+        </nav>
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="page-header__left">
+            <div class="board-badge" id="boardBadge">
+              <span class="board-badge__dot" id="boardDot"></span>
+              <h1 class="page-title" id="pageTitle">Loading…</h1>
+            </div>
+            <p class="page-sub" id="pageSub"></p>
+          </div>
+          <div class="page-header__right">
+            <!-- View mode toggle -->
+            <div class="view-toggle">
+              <button class="view-btn active" id="viewCards" title="Dạng thẻ">
+                <i class="ph-bold ph-squares-four"></i>
+              </button>
+              <button class="view-btn" id="viewList" title="Dạng danh sách">
+                <i class="ph-bold ph-list-bullets"></i>
+              </button>
+              <button class="view-btn" id="viewKanban" title="Dạng Kanban">
+                <i class="ph-bold ph-kanban"></i>
+              </button>
+            </div>
+
+            <!-- Sort -->
+            <div class="sort-wrap">
+              <button class="icon-btn sort-btn" id="sortBtn">
+                <i class="ph-bold ph-sort-ascending"></i>
+                <span class="sort-label">Mới nhất</span>
+              </button>
+              <div class="sort-dropdown" id="sortDropdown">
+                <button class="sort-item active" data-sort="created">
+                  Mới tạo
+                </button>
+                <button class="sort-item" data-sort="due_date">Deadline</button>
+                <button class="sort-item" data-sort="priority">Ưu tiên</button>
+                <button class="sort-item" data-sort="title">A → Z</button>
+              </div>
+            </div>
+
+            <!-- Filter panel toggle -->
+            <button
+              class="icon-btn filter-toggle-btn"
+              id="filterToggleBtn"
+              title="Bộ lọc"
+            >
+              <i class="ph-bold ph-funnel"></i>
+              <span
+                class="filter-active-dot"
+                id="filterDot"
+                style="display: none"
+              ></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inline filter bar (collapsible) -->
+        <div class="filter-bar" id="filterBar" style="display: none">
+          <div class="filter-bar__inner">
+            <select class="filter-select" id="filterCategory">
+              <option value="">Tất cả danh mục</option>
+              <option value="design">Design</option>
+              <option value="development">Development</option>
+              <option value="marketing">Marketing</option>
+              <option value="research">Research</option>
+              <option value="other">Khác</option>
+            </select>
+            <select class="filter-select" id="filterStatus">
+              <option value="">Tất cả trạng thái</option>
+              <option value="todo">Cần làm</option>
+              <option value="in_progress">Đang làm</option>
+              <option value="done">Hoàn thành</option>
+            </select>
+            <select class="filter-select" id="filterPriority">
+              <option value="">Tất cả ưu tiên</option>
+              <option value="high">🔴 Cao</option>
+              <option value="medium">🟡 Trung bình</option>
+              <option value="low">🟢 Thấp</option>
+            </select>
+            <button class="btn btn--ghost filter-clear" id="filterClear">
+              <i class="ph-bold ph-x"></i> Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+
+        <!-- Active filter chips -->
+        <div class="filter-chips" id="filterChips"></div>
+
+        <!-- ── CARD VIEW ── -->
+        <div class="task-grid" id="taskGrid"></div>
+
+        <!-- ── KANBAN VIEW ── -->
+        <div class="kanban-board" id="kanbanBoard" style="display: none">
+          <div class="kanban-col" data-status="todo">
+            <div class="kanban-col__header">
+              <span class="kanban-col__dot" style="background: #9ca3af"></span>
+              <span class="kanban-col__title">Cần làm</span>
+              <span class="kanban-col__count" id="kColTodo">0</span>
+            </div>
+            <div class="kanban-col__body" id="kBodyTodo"></div>
+            <button class="kanban-add-btn" data-status="todo">
+              <i class="ph-bold ph-plus"></i> Thêm task
+            </button>
+          </div>
+          <div class="kanban-col" data-status="in_progress">
+            <div class="kanban-col__header">
+              <span class="kanban-col__dot" style="background: #5b67f7"></span>
+              <span class="kanban-col__title">Đang làm</span>
+              <span class="kanban-col__count" id="kColProgress">0</span>
+            </div>
+            <div class="kanban-col__body" id="kBodyProgress"></div>
+            <button class="kanban-add-btn" data-status="in_progress">
+              <i class="ph-bold ph-plus"></i> Thêm task
+            </button>
+          </div>
+          <div class="kanban-col" data-status="done">
+            <div class="kanban-col__header">
+              <span class="kanban-col__dot" style="background: #22c55e"></span>
+              <span class="kanban-col__title">Hoàn thành</span>
+              <span class="kanban-col__count" id="kColDone">0</span>
+            </div>
+            <div class="kanban-col__body" id="kBodyDone"></div>
+            <button class="kanban-add-btn" data-status="done">
+              <i class="ph-bold ph-plus"></i> Thêm task
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none">
+          <div class="empty-state__art" aria-hidden="true">
+            <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
+              <rect
+                x="10"
+                y="20"
+                width="120"
+                height="90"
+                rx="12"
+                fill="var(--surface-2)"
+                stroke="var(--border)"
+                stroke-width="1.5"
+              />
+              <rect
+                x="24"
+                y="38"
+                width="60"
+                height="10"
+                rx="5"
+                fill="var(--border)"
+              />
+              <rect
+                x="24"
+                y="54"
+                width="40"
+                height="8"
+                rx="4"
+                fill="var(--border)"
+                opacity=".6"
+              />
+              <rect
+                x="24"
+                y="70"
+                width="50"
+                height="8"
+                rx="4"
+                fill="var(--border)"
+                opacity=".4"
+              />
+              <circle
+                cx="110"
+                cy="38"
+                r="14"
+                fill="var(--accent-light)"
+                stroke="var(--accent)"
+                stroke-width="1.5"
+                stroke-dasharray="4 2"
+              />
+              <text
+                x="104"
+                y="43"
+                font-size="16"
+                fill="var(--accent)"
+                font-family="sans-serif"
+              >
+                +
+              </text>
+              <circle cx="28" cy="15" r="3" fill="var(--accent)" opacity=".5" />
+              <circle cx="120" cy="10" r="2" fill="var(--amber)" opacity=".6" />
+            </svg>
+          </div>
+          <h3 class="empty-state__title" id="emptyTitle">Chưa có task nào</h3>
+          <p class="empty-state__desc" id="emptyDesc">
+            Bắt đầu bằng cách tạo task đầu tiên cho board này.
+          </p>
+          <button class="btn btn--primary" id="emptyCreateBtn">
+            <i class="ph-bold ph-plus"></i> Tạo task đầu tiên
+          </button>
+          <div class="empty-shortcuts">
+            <kbd>Ctrl</kbd> + <kbd>N</kbd> để tạo nhanh
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- /.app-layout -->
+
+    <!-- FAB (mobile) -->
+    <button class="fab" id="fab" aria-label="Tạo task mới">
+      <i class="ph-bold ph-plus"></i>
+    </button>
+
+    <!-- ══════════════════════════════════════════════════════
+     MODAL — Create / Edit Task
+     ══════════════════════════════════════════════════════ -->
+    <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+      <div
+        class="modal modal--task"
+        id="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="modal__header">
+          <h2 class="modal__title" id="modalTitle">Tạo Task mới</h2>
+          <button class="modal__close" id="modalClose">
+            <i class="ph-bold ph-x"></i>
+          </button>
+        </div>
+        <div class="modal__body">
+          <!-- Title -->
+          <div class="mfield" id="mfieldTitle">
+            <label class="mfield__label" for="taskTitle">
+              Tiêu đề <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="taskTitle"
+              class="mfield__input"
+              placeholder="Nhập tiêu đề task…"
+              maxlength="100"
+              autocomplete="off"
+            />
+            <div class="mfield__meta">
+              <p class="mfield__error" id="taskTitleErr"></p>
+              <span class="mfield__count" id="taskTitleCount">0 / 100</span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="mfield">
+            <label class="mfield__label" for="taskDesc">
+              Mô tả <span class="optional">(tuỳ chọn)</span>
+            </label>
+            <textarea
+              id="taskDesc"
+              class="mfield__input mfield__textarea"
+              placeholder="Mô tả chi tiết công việc…"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </div>
+
+          <!-- Row: Category + Priority -->
+          <div class="mfield-row">
+            <div class="mfield">
+              <label class="mfield__label" for="taskCategory">Danh mục</label>
+              <select id="taskCategory" class="mfield__input mfield__select">
+                <option value="design">🎨 Design</option>
+                <option value="development">💻 Development</option>
+                <option value="marketing">📣 Marketing</option>
+                <option value="research">🔬 Research</option>
+                <option value="other">📌 Khác</option>
+              </select>
+            </div>
+            <div class="mfield">
+              <label class="mfield__label" for="taskPriority">Ưu tiên</label>
+              <select id="taskPriority" class="mfield__input mfield__select">
+                <option value="low">🟢 Thấp</option>
+                <option value="medium" selected>🟡 Trung bình</option>
+                <option value="high">🔴 Cao</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row: Status + Due date -->
+          <div class="mfield-row">
+            <div class="mfield">
+              <label class="mfield__label" for="taskStatus">Trạng thái</label>
+              <select id="taskStatus" class="mfield__input mfield__select">
+                <option value="todo">⬜ Cần làm</option>
+                <option value="in_progress">🔵 Đang làm</option>
+                <option value="done">✅ Hoàn thành</option>
+              </select>
+            </div>
+            <div class="mfield">
+              <label class="mfield__label" for="taskDueDate">Deadline</label>
+              <input
+                type="date"
+                id="taskDueDate"
+                class="mfield__input mfield__date"
+              />
+            </div>
+          </div>
+
+          <!-- Assignee (display-only in this version) -->
+          <div class="mfield">
+            <label class="mfield__label" for="taskAssignee"
+              >Người thực hiện</label
+            >
+            <input
+              type="text"
+              id="taskAssignee"
+              class="mfield__input"
+              placeholder="Tên người thực hiện (tuỳ chọn)"
+            />
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--ghost" id="modalCancel">Huỷ</button>
+          <button class="btn btn--primary" id="modalSubmit">
+            <i class="ph-bold ph-rocket-launch"></i> Tạo Task
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+     TASK DETAIL DRAWER (click to view)
+     ══════════════════════════════════════════════════════ -->
+    <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true">
+      <aside
+        class="drawer"
+        id="drawer"
+        role="complementary"
+        aria-label="Chi tiết task"
+      >
+        <div class="drawer__header">
+          <h3 class="drawer__title" id="drawerTitle">Task detail</h3>
+          <div class="drawer__actions">
+            <button class="icon-btn" id="drawerEdit" title="Chỉnh sửa">
+              <i class="ph-bold ph-pencil-simple"></i>
+            </button>
+            <button
+              class="icon-btn icon-btn--danger"
+              id="drawerDelete"
+              title="Xóa"
+            >
+              <i class="ph-bold ph-trash"></i>
+            </button>
+            <button class="icon-btn" id="drawerClose">
+              <i class="ph-bold ph-x"></i>
+            </button>
+          </div>
+        </div>
+        <div class="drawer__body" id="drawerBody">
+          <!-- Injected by JS -->
+        </div>
+      </aside>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+     CONTEXT MENU (right-click / 3-dot on task)
+     ══════════════════════════════════════════════════════ -->
+    <ul class="context-menu" id="contextMenu" role="menu">
+      <li>
+        <button class="ctx-item" id="ctxEdit">
+          <i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa
+        </button>
+      </li>
+      <li>
+        <button class="ctx-item" id="ctxDone">
+          <i class="ph-bold ph-check-circle"></i> Đánh dấu xong
+        </button>
+      </li>
+      <li>
+        <button class="ctx-item" id="ctxDuplicate">
+          <i class="ph-bold ph-copy"></i> Nhân bản
+        </button>
+      </li>
+      <li class="ctx-sep"></li>
+      <li>
+        <button class="ctx-item ctx-item--danger" id="ctxDelete">
+          <i class="ph-bold ph-trash"></i> Xóa task
+        </button>
+      </li>
+    </ul>
+
+    <script>
+      const DJANGO_BOARD_ID = "{{ board.id }}";
+      const DJANGO_BOARD_NAME = "{{ board.name|escapejs }}";
+      const DJANGO_BOARD_COLOR = "{{ board.color }}";
+      const DJANGO_BOARD_DESC = "{{ board.desc|escapejs }}";
+    </script>
+
+    <script src="{% static 'tasks/js/task_list.js' %}?v=999"></script>
+  </body>
+</html>
