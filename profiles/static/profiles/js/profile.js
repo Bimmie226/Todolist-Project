@@ -26,6 +26,25 @@
 /* ════════════════════════════════════════════════════
    A. CONFIG & CONSTANTS
    ════════════════════════════════════════════════════ */
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+const authHeaders = {
+  "X-CSRFToken": getCookie("csrftoken"),
+};
+
 const LS = {
   THEME: "taskly-theme",
   USERNAME: "taskly-username",
@@ -57,27 +76,38 @@ const COMPLETION_ITEMS = [
 ];
 
 /* ════════════════════════════════════════════════════
-   B. PROFILE DB — localStorage helper
+   B. PROFILE API — Thay thế ProfileDB cũ
    ════════════════════════════════════════════════════ */
-const ProfileDB = {
-  load() {
+const ProfileAPI = {
+  // Tải dữ liệu từ Django
+  async load() {
     try {
-      const raw = localStorage.getItem(LS.PROFILE);
-      return raw
-        ? { ...DEFAULT_PROFILE, ...JSON.parse(raw) }
-        : { ...DEFAULT_PROFILE };
-    } catch {
-      return { ...DEFAULT_PROFILE };
+      const res = await fetch(API_PROFILE_ME);
+      if (!res.ok) throw new Error("Không thể tải hồ sơ");
+      const data = await res.json();
+      return data.profile;
+    } catch (err) {
+      console.error(err);
+      return DEFAULT_PROFILE;
     }
   },
 
-  save(profile) {
+  // Lưu dữ liệu lên Django (Sử dụng FormData để hỗ trợ upload ảnh)
+  async save(formData) {
     try {
-      localStorage.setItem(LS.PROFILE, JSON.stringify(profile));
-      return true;
-    } catch {
-      showToast("Không thể lưu dữ liệu.", "error");
-      return false;
+      const res = await fetch("/api/profile/update/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+          // Lưu ý: Không để Content-Type khi gửi FormData để trình duyệt tự xử lý boundary
+        },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Lỗi cập nhật server");
+      return await res.json();
+    } catch (err) {
+      showToast("Không thể lưu vào database.", "error");
+      return null;
     }
   },
 };
@@ -252,57 +282,45 @@ document.getElementById("btnLogout").addEventListener("click", () => {
 /* ════════════════════════════════════════════════════
    F. PROFILE DATA LOADER — render VIEW mode
    ════════════════════════════════════════════════════ */
-function renderProfile() {
-  const profile = ProfileDB.load();
-  const username = localStorage.getItem(LS.USERNAME) || "user";
+function renderProfile(profile) {
+  // Nếu không có dữ liệu, dùng object trống để tránh lỗi
+  if (!profile) profile = DEFAULT_PROFILE;
 
-  // Use saved name or fallback to username
-  const displayName = profile.name || username;
+  const username = localStorage.getItem(LS.USERNAME) || "user";
+  const displayName = profile.full_name || username;
   const displayEmail = profile.email || `${username}@taskly.vn`;
 
-  // ── Header avatar ──
-  renderAvatar(profile.avatar, displayName);
-
-  // ── Header user menu ──
-  document.getElementById("userInitials").textContent = displayName
-    .substring(0, 2)
-    .toUpperCase();
-  document.getElementById("udName").textContent = displayName;
-  document.getElementById("udEmail").textContent = displayEmail;
-
-  // ── Avatar card ──
+  // 1. Cập nhật thẻ Avatar Card bên trái
   document.getElementById("displayName").textContent = displayName;
   document.getElementById("displayEmail").textContent = displayEmail;
 
-  // Joined date
-  let joined = localStorage.getItem(LS.JOINED);
-  if (!joined) {
-    joined = new Date().toISOString().split("T")[0];
-    localStorage.setItem(LS.JOINED, joined);
-  }
-  document.getElementById("displayJoined").textContent =
-    `Tham gia ${fmtDate(joined)}`;
+  // 2. Cập nhật Menu Dropdown trên Header
+  const udName = document.getElementById("udName");
+  if (udName) udName.textContent = displayName;
+  const udEmail = document.getElementById("udEmail");
+  if (udEmail) udEmail.textContent = displayEmail;
 
-  // ── Info grid ──
-  setInfoValue("infoName", profile.name);
+  // 3. Đổ dữ liệu vào các thẻ Thông tin cá nhân
+  setInfoValue("infoName", profile.full_name);
   setInfoValue("infoEmail", profile.email);
   setInfoValue("infoPhone", profile.phone);
   setInfoValue("infoAddress", profile.address);
   setInfoValue("infoBio", profile.bio);
 
-  // Birth date with age
-  if (profile.birthDate) {
-    const age = calcAge(profile.birthDate);
-    document.getElementById("infoBirthDate").textContent =
-      fmtDate(profile.birthDate) + (age !== null ? ` (${age} tuổi)` : "");
-    document.getElementById("infoBirthDate").classList.remove("empty");
+  // 4. Xử lý riêng phần Ngày sinh (Hiển thị định dạng VN + Tính tuổi)
+  const birthEl = document.getElementById("infoBirthDate");
+  if (profile.birth_date) {
+    const age = calcAge(profile.birth_date);
+    birthEl.textContent =
+      fmtDate(profile.birth_date) + (age !== null ? ` (${age} tuổi)` : "");
+    birthEl.classList.remove("empty");
   } else {
-    document.getElementById("infoBirthDate").textContent = "Chưa cập nhật";
-    document.getElementById("infoBirthDate").classList.add("empty");
+    birthEl.textContent = "Chưa cập nhật";
+    birthEl.classList.add("empty");
   }
 
-  // ── Completion ──
-  renderCompletion(profile);
+  // 5. Xử lý hiển thị Ảnh đại diện (Dùng URL từ Django)
+  renderAvatar(profile.avatar_url, displayName);
 }
 
 /** Set info value with empty style */
@@ -319,32 +337,30 @@ function setInfoValue(id, value) {
 }
 
 /** Render avatar in both header and profile card */
-function renderAvatar(avatar, name) {
+function renderAvatar(avatarUrl, name) {
   const avatarImg = document.getElementById("avatarImg");
   const avatarInitials = document.getElementById("avatarInitials");
   const headerImg = document.getElementById("headerAvatarImg");
-  const headerInitials = document.getElementById("userInitials");
 
-  if (avatar) {
-    // Show image
-    avatarImg.src = avatar;
+  if (avatarUrl) {
+    // Nếu có ảnh từ Database
+    avatarImg.src = avatarUrl;
     avatarImg.style.display = "block";
     avatarInitials.style.display = "none";
 
-    // Header avatar image
-    headerImg.src = avatar;
+    headerImg.src = avatarUrl;
     headerImg.style.display = "block";
-    headerInitials.style.display = "none";
+    document.getElementById("userInitials").style.display = "none";
   } else {
-    // Show initials
+    // Nếu không có ảnh, hiện chữ cái đầu
     const initials = name ? name.substring(0, 2).toUpperCase() : "TN";
     avatarImg.style.display = "none";
     avatarInitials.style.display = "grid";
     avatarInitials.textContent = initials;
 
     headerImg.style.display = "none";
-    headerInitials.style.display = "";
-    headerInitials.textContent = initials;
+    document.getElementById("userInitials").style.display = "block";
+    document.getElementById("userInitials").textContent = initials;
   }
 }
 
@@ -421,38 +437,67 @@ function openEditMode() {
   if (_isEditing) return;
   _isEditing = true;
 
-  const profile = ProfileDB.load();
-  _avatarPreview = profile.avatar || "";
+  // 1. Hàm hỗ trợ lấy text từ giao diện View Mode (bỏ qua placeholder)
+  const getText = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return "";
+    const text = el.textContent.trim();
+    return text !== "Chưa cập nhật" && text !== "—" ? text : "";
+  };
 
-  // Populate form
-  document.getElementById("fAvatarUrl").value =
-    profile.avatar && !profile.avatar.startsWith("data:") ? profile.avatar : "";
-  document.getElementById("fName").value = profile.name || "";
-  document.getElementById("fEmail").value = profile.email || "";
-  document.getElementById("fPhone").value = profile.phone || "";
-  document.getElementById("fBirthDate").value = profile.birthDate || "";
-  document.getElementById("fAddress").value = profile.address || "";
-  document.getElementById("fBio").value = profile.bio || "";
+  // 2. Điền dữ liệu vào form
+  document.getElementById("fName").value = getText("infoName");
+  document.getElementById("fEmail").value = getText("infoEmail");
+  document.getElementById("fPhone").value = getText("infoPhone");
+  document.getElementById("fAddress").value = getText("infoAddress");
+  document.getElementById("fBio").value = getText("infoBio");
+
+  // 3. Xử lý Ngày sinh: Từ "21/03/1995 (31 tuổi)" -> "1995-03-21"
+  const birthText = getText("infoBirthDate");
+  if (birthText) {
+    const datePart = birthText.split(" ")[0]; // Lấy phần "21/03/1995"
+    const parts = datePart.split("/");
+    if (parts.length === 3) {
+      const [d, m, y] = parts;
+      document.getElementById("fBirthDate").value = `${y}-${m}-${d}`;
+    } else {
+      document.getElementById("fBirthDate").value = "";
+    }
+  } else {
+    document.getElementById("fBirthDate").value = "";
+  }
+
+  // 4. Lấy avatar hiện tại làm preview (nếu có ảnh)
+  const avatarImg = document.getElementById("avatarImg");
+  if (avatarImg && avatarImg.style.display !== "none") {
+    _avatarPreview = avatarImg.src;
+  } else {
+    _avatarPreview = "";
+  }
+
+  // Cập nhật bộ đếm chữ Bio và Xóa lỗi cũ
   updateBioCount();
-
-  // Clear errors
   clearAllErrors();
 
-  // Toggle views with animation
+  // 5. Hiển thị form, ẩn view
   document.getElementById("viewMode").style.display = "none";
   document.getElementById("editMode").style.display = "";
-  document.getElementById("btnEditToggle").innerHTML =
-    '<i class="ph-bold ph-x"></i> Đóng';
 
-  // Add body class for avatar overlay
+  const btnEditToggle = document.getElementById("btnEditToggle");
+  if (btnEditToggle) {
+    btnEditToggle.innerHTML = '<i class="ph-bold ph-x"></i> Đóng';
+  }
+
+  // Thêm class để hiện nút Camera đổi ảnh trên Avatar
   document.body.classList.add("edit-active");
 
-  // Set theme toggle
-  const isDark = html.getAttribute("data-theme") === "dark";
-  document.getElementById("fThemeDark").checked = isDark;
+  // Đồng bộ nút gạt giao diện Sáng/Tối trong form
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const fThemeDark = document.getElementById("fThemeDark");
+  if (fThemeDark) fThemeDark.checked = isDark;
   updateToggleLabel(isDark ? "dark" : "light");
 
-  // Scroll to form
+  // Tự động cuộn mượt mà xuống khu vực form
   document
     .getElementById("editMode")
     .scrollIntoView({ behavior: "smooth", block: "start" });
@@ -463,27 +508,46 @@ function closeEditMode() {
   _isEditing = false;
   _avatarPreview = "";
 
+  // Ẩn form, hiện lại view
   document.getElementById("editMode").style.display = "none";
   document.getElementById("viewMode").style.display = "";
-  document.getElementById("btnEditToggle").innerHTML =
-    '<i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa';
 
+  const btnEditToggle = document.getElementById("btnEditToggle");
+  if (btnEditToggle) {
+    btnEditToggle.innerHTML =
+      '<i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa';
+  }
+
+  // Tắt chế độ edit trên thẻ body
   document.body.classList.remove("edit-active");
 
-  // Remove preview ring
-  document.getElementById("avatarRing").classList.remove("preview-ready");
+  // Xóa vòng sáng preview của ảnh (nếu có)
+  const avatarRing = document.getElementById("avatarRing");
+  if (avatarRing) avatarRing.classList.remove("preview-ready");
 }
 
-// Expose globally (called from HTML onclick)
+// ── ĐĂNG KÝ CÁC SỰ KIỆN CHO NÚT BẤM ──
+
+// Expose globally (để HTML có thể gọi được bằng onclick="")
 window.openEditMode = openEditMode;
 window.closeEditMode = closeEditMode;
 
-document
-  .getElementById("btnCancelEdit")
-  .addEventListener("click", closeEditMode);
-document.getElementById("btnEditToggle").addEventListener("click", () => {
-  _isEditing ? closeEditMode() : openEditMode();
-});
+// Lắng nghe sự kiện cho nút "Hủy" (Dòng e.preventDefault() giúp không bị load lại trang)
+const btnCancel = document.getElementById("btnCancelEdit");
+if (btnCancel) {
+  btnCancel.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeEditMode();
+  });
+}
+
+// Lắng nghe sự kiện cho nút "Chỉnh sửa / Đóng" ở góc trên cùng
+const btnToggle = document.getElementById("btnEditToggle");
+if (btnToggle) {
+  btnToggle.addEventListener("click", () => {
+    _isEditing ? closeEditMode() : openEditMode();
+  });
+}
 
 /* ════════════════════════════════════════════════════
    J. FORM VALIDATION
@@ -584,12 +648,6 @@ function updateBioCount() {
   document.getElementById("fBioCount").textContent = `${len} / 300`;
 }
 
-// Avatar URL live preview
-document.getElementById("fAvatarUrl").addEventListener("input", (e) => {
-  const url = e.target.value.trim();
-  if (url) previewAvatar(url);
-});
-
 /* ════════════════════════════════════════════════════
    K. AVATAR HANDLING
    ════════════════════════════════════════════════════ */
@@ -626,85 +684,82 @@ document.getElementById("avatarFileInput").addEventListener("change", (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     previewAvatar(ev.target.result);
-    document.getElementById("fAvatarUrl").value = ""; // clear URL field
     showToast('Ảnh đã được tải lên. Nhấn "Lưu" để xác nhận.', "info");
   };
   reader.readAsDataURL(file);
 });
 
 /* ════════════════════════════════════════════════════
-   L. AUTO-SAVE
+   M. SAVE HANDLER (PHIÊN BẢN DEBUG)
    ════════════════════════════════════════════════════ */
-let _autoSaveTimer = null;
-
-function triggerAutoSave() {
-  const checked = document.getElementById("autoSaveCheck").checked;
-  if (!checked) return;
-
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => {
-    if (_isEditing && validateForm(false)) {
-      saveProfile(true); // silent = true
-    }
-  }, 2500);
+const btnSave = document.getElementById("btnSaveProfile");
+if (btnSave) {
+  btnSave.addEventListener("click", (e) => {
+    e.preventDefault();
+    console.log("👉 1. Đã nhận sự kiện click nút Lưu!");
+    saveProfile(false);
+  });
 }
 
-// Attach auto-save to all form inputs
-[
-  "fName",
-  "fEmail",
-  "fPhone",
-  "fAddress",
-  "fBirthDate",
-  "fBio",
-  "fAvatarUrl",
-].forEach((id) => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener("input", triggerAutoSave);
-});
+async function saveProfile(silent = false) {
+  console.log("👉 2. Bắt đầu chạy hàm saveProfile...");
 
-/* ════════════════════════════════════════════════════
-   M. SAVE HANDLER
-   ════════════════════════════════════════════════════ */
-document
-  .getElementById("btnSaveProfile")
-  .addEventListener("click", () => saveProfile(false));
-
-/**
- * Save profile to localStorage.
- * @param {boolean} silent — if true, skip success toast (auto-save mode)
- */
-function saveProfile(silent = false) {
-  _nameTouched = _emailTouched = _phoneTouched = true;
   if (!validateForm(true)) {
-    showToast("Vui lòng kiểm tra lại thông tin.", "error");
-    document.getElementById("fName").focus();
+    console.error(
+      "❌ LỖI: Form chưa điền đúng định dạng (validateForm trả về false)",
+    );
     return;
   }
 
-  const profile = {
-    name: document.getElementById("fName").value.trim(),
-    email: document.getElementById("fEmail").value.trim(),
-    phone: document.getElementById("fPhone").value.trim(),
-    address: document.getElementById("fAddress").value.trim(),
-    birthDate: document.getElementById("fBirthDate").value,
-    bio: document.getElementById("fBio").value.trim(),
-    avatar: _avatarPreview || ProfileDB.load().avatar || "",
-  };
+  console.log("👉 3. Form hợp lệ! Đang gom dữ liệu...");
+  const formData = new FormData();
+  formData.append("full_name", document.getElementById("fName").value.trim());
+  formData.append("email", document.getElementById("fEmail").value.trim());
+  formData.append("phone", document.getElementById("fPhone").value.trim());
+  formData.append("address", document.getElementById("fAddress").value.trim());
+  formData.append("birth_date", document.getElementById("fBirthDate").value);
+  formData.append("bio", document.getElementById("fBio").value.trim());
 
-  // Update username key as well (for other pages)
-  if (profile.name)
-    localStorage.setItem(LS.USERNAME, profile.name.split(" ")[0]);
+  const fileInput = document.getElementById("avatarFileInput");
+  if (fileInput.files[0]) {
+    formData.append("avatar", fileInput.files[0]);
+    console.log("👉 Đã đính kèm ảnh avatar.");
+  }
 
-  if (ProfileDB.save(profile)) {
-    if (!silent) {
-      showToast("Hồ sơ đã được lưu thành công! ✨", "success");
+  try {
+    console.log("👉 4. Đang gửi POST request lên server...");
+
+    // DÙNG TRỰC TIẾP URL ĐỂ TRÁNH LỖI BIẾN KHÔNG TỒN TẠI
+    const response = await fetch("/profile/api/update/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: formData,
+    });
+
+    console.log("👉 5. Server đã trả lời! HTTP Status:", response.status);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("👉 6. Dữ liệu server trả về:", data);
+
+      if (!silent) showToast("Đã lưu vào Database thành công! ✨", "success");
+
+      renderProfile(data.profile);
+      renderCompletion(data.profile);
       closeEditMode();
     } else {
-      showToast("Tự động lưu…", "info");
+      console.error(
+        "❌ LỖI: Server từ chối lưu (Status:",
+        response.status,
+        ")",
+      );
+      showToast("Server báo lỗi. Nhấn F12 xem Console.", "error");
     }
-    renderProfile(); // Re-render view with new data
-    loadStats();
+  } catch (error) {
+    console.error("❌ LỖI JAVASCRIPT:", error);
+    showToast("Mất kết nối với server. Nhấn F12 xem Console.", "error");
   }
 }
 
@@ -743,40 +798,35 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ════════════════════════════════════════════════════
-   P. INIT
+   P. INIT — Khởi tạo trang với dữ liệu từ Database
    ════════════════════════════════════════════════════ */
 
-// Set joined date if first visit
-if (!localStorage.getItem(LS.JOINED)) {
-  localStorage.setItem(LS.JOINED, new Date().toISOString().split("T")[0]);
+async function initProfilePage() {
+  try {
+    // 1. Gọi API để lấy dữ liệu Profile từ Django
+    // (Bạn cần định nghĩa ProfileAPI.load() như mình hướng dẫn ở bước trước)
+    const profileData = await ProfileAPI.load();
+
+    // 2. Đổ dữ liệu vào các thẻ HTML để hiển thị (View Mode)
+    renderProfile(profileData);
+
+    // 3. Tính toán và hiển thị độ hoàn thiện hồ sơ
+    renderCompletion(profileData);
+
+    // 4. Tải các chỉ số thống kê (Boards, Tasks)
+    loadStats();
+
+    // 5. Hiện thông báo chào mừng nếu là lần đầu trong phiên làm việc
+    if (!sessionStorage.getItem("taskly-profile-visited")) {
+      sessionStorage.setItem("taskly-profile-visited", "1");
+      const name = profileData.full_name || "bạn";
+      setTimeout(() => showToast(`Xin chào, ${name}! 👋`, "info"), 600);
+    }
+  } catch (error) {
+    console.error("Lỗi khởi tạo hồ sơ:", error);
+    showToast("Không thể tải thông tin hồ sơ từ máy chủ.", "error");
+  }
 }
 
-// Seed default profile from username if blank
-(function seedDefaultProfile() {
-  const profile = ProfileDB.load();
-  const username = localStorage.getItem(LS.USERNAME) || "";
-  if (!profile.name && username) {
-    profile.name = username;
-    ProfileDB.save(profile);
-  }
-  if (!profile.email && username) {
-    profile.email = `${username}@taskly.vn`;
-    ProfileDB.save(profile);
-  }
-})();
-
-// Initial render
-renderProfile();
-loadStats();
-
-// Welcome toast
-if (!sessionStorage.getItem("taskly-profile-visited")) {
-  sessionStorage.setItem("taskly-profile-visited", "1");
-  const name =
-    ProfileDB.load().name || localStorage.getItem(LS.USERNAME) || "bạn";
-  setTimeout(
-    () =>
-      showToast(`Xin chào, ${name}! Hãy hoàn thiện hồ sơ của bạn. 👤`, "info"),
-    600,
-  );
-}
+// GỌI HÀM KHỞI TẠO NGAY KHI TRANG LOAD
+initProfilePage();

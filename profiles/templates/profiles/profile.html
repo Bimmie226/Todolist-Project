@@ -8,10 +8,13 @@
     <!-- Reuse shared layout -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=999"
+      href="{% static 'tasks/css/board_list.css' %}?v=2026"
     />
     <!-- Profile-specific styles -->
-    <link rel="stylesheet" href="{% static 'profiles/css/profile.css' %}" />
+    <link
+      rel="stylesheet"
+      href="{% static 'profiles/css/profile.css' %}?v=2026"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -222,14 +225,14 @@
             </p>
           </div>
           <div class="page-header__right">
-            <!-- <button
+            <button
               class="btn btn--ghost"
               id="btnEditToggle"
               onclick="openEditMode()"
             >
               <i class="ph-bold ph-pencil-simple"></i>
               Chỉnh sửa
-            </button> -->
+            </button>
           </div>
         </div>
 
@@ -432,8 +435,9 @@
                 </div>
 
                 <form id="profileForm" novalidate>
-                  <!-- Avatar URL fallback -->
-                  <div class="pfield">
+                  {% csrf_token %}
+                  <!-------------------------------- Avatar URL fallback -------------------------------------------------------->
+                  <!-- <div class="pfield">
                     <label class="pfield__label" for="fAvatarUrl">
                       <i class="ph-bold ph-link"></i>
                       URL ảnh đại diện
@@ -445,8 +449,8 @@
                       class="pfield__input"
                       placeholder="https://example.com/avatar.jpg"
                     />
-                  </div>
-
+                  </div> -->
+                  <!-- -------------------------------------------------------------------------------------------------- -->
                   <!-- Name -->
                   <div class="pfield" id="pfieldName">
                     <label class="pfield__label" for="fName">
@@ -606,6 +610,11 @@
       <i class="ph-bold ph-pencil-simple"></i>
     </button>
 
-    <script src="{% static 'profiles/js/profile.js' %}?v=999"></script>
+    <script>
+      const API_PROFILE_ME = '{% url "get_profile_api" %}';
+      const API_PROFILE_UPDATE = '{% url "update_profile_api" %}';
+    </script>
+
+    <script src="{% static 'profiles/js/profile.js' %}?v=2026"></script>
   </body>
 </html>

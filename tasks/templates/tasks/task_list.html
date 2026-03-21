@@ -8,12 +8,12 @@
     <!-- Reuse shared layout styles from board_list -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=999"
+      href="{% static 'tasks/css/board_list.css' %}?v=2026"
     />
     <!-- Task-specific styles (extend, never override layout) -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/task_list.css' %}?v=999"
+      href="{% static 'tasks/css/task_list.css' %}?v=2026"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -88,11 +88,17 @@
               <span class="ud-email" id="udEmail">user@taskly.vn</span>
             </div>
             <hr class="ud-divider" />
-            <button class="ud-item">
-              <i class="ph-bold ph-user-circle"></i> Hồ sơ
+            <button>
+              <a href="{% url 'profile' %}" class="ud-item" role="menuitem">
+                <i class="ph-bold ph-user-circle"></i>
+                Hồ sơ
+              </a>
             </button>
-            <button class="ud-item">
+            <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-gear"></i> Cài đặt
+            </button>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-question"></i> Trợ giúp
             </button>
             <hr class="ud-divider" />
             <button class="ud-item ud-item--danger" id="btnLogout">
@@ -604,6 +610,6 @@
       const DJANGO_BOARD_DESC = "{{ board.desc|escapejs }}";
     </script>
 
-    <script src="{% static 'tasks/js/task_list.js' %}?v=999"></script>
+    <script src="{% static 'tasks/js/task_list.js' %}?v=2026"></script>
   </body>
 </html>
