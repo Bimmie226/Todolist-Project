@@ -117,3 +117,7 @@ def reset_password(request):
         return redirect('login')
 
     return render(request,'accounts/reset_password.html')
+
+def login_by_google_account(request):
+    # ... code ... 
+    return 
