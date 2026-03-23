@@ -7,7 +7,7 @@
     <title>Boards — Taskly</title>
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=2026"
+      href="{% static 'tasks/css/board_list.css' %}?v=1001"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -502,6 +502,68 @@
               </label>
             </div>
           </div>
+
+          <!-- Thành viên — chỉ hiện khi chọn Nhóm -->
+          <div class="mfield" id="memberSection">
+            <div class="member-section-inner">
+              <label class="mfield__label">
+                <i class="ph-bold ph-users-three"></i>
+                Thêm thành viên
+                <span
+                  id="memberCountBadge"
+                  style="
+                    background: var(--accent);
+                    color: #fff;
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    padding: 1px 8px;
+                    border-radius: 999px;
+                    margin-left: auto;
+                  "
+                  >0</span
+                >
+              </label>
+              <div style="display: flex; gap: 8px; margin-bottom: 6px">
+                <input
+                  type="text"
+                  id="memberInput"
+                  class="mfield__input"
+                  placeholder="Nhập username… (vd: nguyen_van_a)"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="btnAddMember"
+                  style="
+                    width: 40px;
+                    height: 40px;
+                    flex-shrink: 0;
+                    background: var(--accent);
+                    color: #fff;
+                    border: none;
+                    border-radius: var(--r-md);
+                    font-size: 1rem;
+                    cursor: pointer;
+                  "
+                >
+                  <i class="ph-bold ph-plus"></i>
+                </button>
+              </div>
+              <p
+                id="memberInputErr"
+                style="font-size: 0.76rem; color: var(--red); min-height: 16px"
+              ></p>
+              <div
+                id="memberList"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 6px;
+                  margin-top: 4px;
+                "
+              ></div>
+            </div>
+          </div>
         </div>
         <div class="modal__footer">
           <button class="btn btn--ghost" id="modalCancel">Huỷ</button>
@@ -559,6 +621,6 @@
       </li>
     </ul>
 
-    <script src="{% static 'tasks/js/board_list.js' %}?v=2026"></script>
+    <script src="{% static 'tasks/js/board_list.js' %}?v=1001"></script>
   </body>
 </html>

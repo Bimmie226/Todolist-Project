@@ -142,15 +142,6 @@ function authHeaders(extra = {}) {
   };
 }
 
-// /** Headers chuẩn cho mọi API call (JSON + JWT Bearer) */
-// function authHeaders(extra = {}) {
-//   return {
-//     "Content-Type": "application/json",
-//     Authorization: `Bearer ${getToken()}`,
-//     ...extra,
-//   };
-// }
-
 /* ════════════════════════════════════════════════════
    C. BOARD API — HTTP SERVICE LAYER
    ════════════════════════════════════════════════════
@@ -565,12 +556,6 @@ function buildCard(board, idx) {
       </div>
     </div>`;
 
-  // card.addEventListener("click", (e) => {
-  //   if (e.target.closest(".card-menu-btn")) return;
-  //   showToast(`Đang mở board "${board.name}"…`, "info");
-  //   // window.location.href = `board_detail.html?id=${board.id}`;
-  // });
-
   card.addEventListener("click", (e) => {
     if (e.target.closest(".card-menu-btn")) return;
     // Navigate to task management page for this board
@@ -601,6 +586,10 @@ const boardDescInput = document.getElementById("boardDesc");
 const boardNameErr = document.getElementById("boardNameErr");
 const boardNameCount = document.getElementById("boardNameCount");
 
+// ════ THÊM MỚI: biến lưu thành viên ════
+let boardMembers = [];
+// ════════════════════════════════════════
+
 function openModal(editId = null) {
   ui.editingId = editId;
 
@@ -609,7 +598,21 @@ function openModal(editId = null) {
     board = ui.boards.find((b) => b.id === editId) || null;
   }
 
-  // Reset form
+  // 1. NẠP LẠI THÀNH VIÊN TỪ DB NẾU ĐANG EDIT
+  if (board && board.members && board.members.length > 0) {
+    // Backend trả về mảng object [{username: 'a'}, ...], ta tách lấy mảng chữ
+    boardMembers = board.members.map((m) => m.username);
+  } else {
+    // Nếu tạo mới hoặc board trống thì reset
+    boardMembers = [];
+  }
+
+  // 2. RENDER VÀ CẬP NHẬT SỐ LƯỢNG VÀO BADGE
+  renderMembers();
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) badge.textContent = boardMembers.length; // Hiển thị số lượng
+
+  // ... (Phần code set boardNameInput, boardDescInput, UI picker... giữ nguyên như cũ)
   boardNameInput.value = board ? board.name : "";
   boardDescInput.value = board ? board.desc || "" : "";
   boardNameErr.textContent = "";
@@ -717,30 +720,155 @@ modalSubmit.addEventListener("click", async () => {
     desc: boardDescInput.value.trim(),
     color: ui.selectedColor,
     board_type: ui.selectedType,
+    // ════ THÊM MỚI: gửi danh sách thành viên lên server ════
+    members: boardMembers,
+    // ═══════════════════════════════════════════════════════
   };
 
   try {
     if (ui.editingId) {
-      // ── UPDATE ─────────────────────────────────────────
       const res = await BoardAPI.update(ui.editingId, payload);
       showToast(res.message || `Board đã được cập nhật!`, "success");
     } else {
-      // ── CREATE ─────────────────────────────────────────
       const res = await BoardAPI.create(payload);
       showToast(res.message || `Board đã được tạo thành công! 🎉`, "success");
     }
-
     closeModal();
-    // ← Chỉ sau khi DB xác nhận thành công mới render lại
     await fetchAndRender();
   } catch (err) {
-    // Lỗi từ server (validation duplicate, auth...) → hiển thị
     const msg = err.message || "Đã xảy ra lỗi. Vui lòng thử lại.";
     boardNameErr.textContent = msg;
     boardNameInput.classList.add("error");
     setModalLoading(false);
   }
 });
+
+// ════════════════════════════════════════════════════
+// THÊM MỚI: Color picker + Type picker + Member input
+// ════════════════════════════════════════════════════
+
+// Color picker
+function syncColorPicker() {
+  document.querySelectorAll(".color-swatch").forEach((sw) => {
+    sw.classList.toggle("active", sw.dataset.color === ui.selectedColor);
+  });
+}
+document.getElementById("colorPicker").addEventListener("click", (e) => {
+  const sw = e.target.closest(".color-swatch");
+  if (!sw) return;
+  ui.selectedColor = sw.dataset.color;
+  syncColorPicker();
+});
+
+// Type picker — khi chọn "Nhóm" thì hiện ô nhập thành viên
+function syncTypePicker() {
+  document.querySelectorAll('input[name="boardType"]').forEach((r) => {
+    r.checked = r.value === ui.selectedType;
+  });
+  // Đồng bộ hiển thị member section theo loại hiện tại
+  toggleMemberSection(ui.selectedType === "team");
+}
+
+document.getElementById("typePicker").addEventListener("change", (e) => {
+  if (e.target.type !== "radio") return;
+  ui.selectedType = e.target.value;
+  toggleMemberSection(e.target.value === "team");
+});
+
+// Hiện / ẩn phần thêm thành viên
+function toggleMemberSection(show) {
+  const section = document.getElementById("memberSection");
+  if (!section) return;
+  section.classList.toggle("open", show);
+
+  // Khi ẩn → reset toàn bộ
+  if (!show) {
+    boardMembers = [];
+    renderMembers();
+    const input = document.getElementById("memberInput");
+    if (input) input.value = "";
+    const badge = document.getElementById("memberCountBadge");
+    if (badge) badge.textContent = "0";
+    const errEl = document.getElementById("memberInputErr");
+    if (errEl) errEl.textContent = "";
+  }
+}
+
+// Nút "+" và phím Enter để thêm thành viên
+document.getElementById("btnAddMember")?.addEventListener("click", addMember);
+
+document.getElementById("memberInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addMember();
+  }
+});
+
+function addMember() {
+  const input = document.getElementById("memberInput");
+  const errEl = document.getElementById("memberInputErr");
+  const val = (input?.value || "").trim();
+
+  if (errEl) errEl.textContent = "";
+
+  if (!val) {
+    if (errEl) errEl.textContent = "Vui lòng nhập username.";
+    return;
+  }
+  if (boardMembers.includes(val)) {
+    if (errEl) errEl.textContent = `"${val}" đã được thêm rồi.`;
+    return;
+  }
+
+  boardMembers.push(val);
+  if (input) input.value = "";
+  renderMembers();
+
+  // Cập nhật badge + animation
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) {
+    badge.textContent = boardMembers.length;
+    badge.animate(
+      [
+        { transform: "scale(1)" },
+        { transform: "scale(1.4)" },
+        { transform: "scale(1)" },
+      ],
+      { duration: 300 },
+    );
+  }
+}
+
+function removeMember(username) {
+  boardMembers = boardMembers.filter((u) => u !== username);
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) badge.textContent = boardMembers.length;
+  renderMembers();
+}
+window.removeMember = removeMember; // cần expose vì gọi từ innerHTML
+
+function renderMembers() {
+  const list = document.getElementById("memberList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  boardMembers.forEach((username) => {
+    const chip = document.createElement("div");
+    chip.className = "member-chip";
+    chip.innerHTML = `
+      <span class="member-chip__av">
+        ${username.substring(0, 2).toUpperCase()}
+      </span>
+      <span class="member-chip__name">@${username}</span>
+      <span class="member-chip__role">Thành viên</span>
+      <button class="member-chip__remove"
+        onclick="removeMember('${username}')"
+        title="Xóa ${username}">
+        <i class="ph-bold ph-x"></i>
+      </button>`;
+    list.appendChild(chip);
+  });
+}
 
 /* ════════════════════════════════════════════════════
    I. CONTEXT MENU
@@ -894,11 +1022,6 @@ function showPreview(board) {
         .join("")
     : '<p style="font-size:.78rem;color:var(--text-light)">Chưa có task nào.</p>';
 
-  // document.getElementById("qpOpen").onclick = () =>
-  //   showToast(`Đang mở board "${board.name}"…`, "info");
-  // positionPreview();
-  // quickPreview.classList.add("show");
-
   document.getElementById("qpOpen").onclick = () => {
     window.location.href = `/boards/${board.id}/tasks/`;
   };
@@ -1030,27 +1153,6 @@ document.getElementById("viewList").addEventListener("click", () => {
   renderGrid(ui.boards);
 });
 
-// Color & type pickers
-function syncColorPicker() {
-  document.querySelectorAll(".color-swatch").forEach((sw) => {
-    sw.classList.toggle("active", sw.dataset.color === ui.selectedColor);
-  });
-}
-function syncTypePicker() {
-  document.querySelectorAll('input[name="boardType"]').forEach((r) => {
-    r.checked = r.value === ui.selectedType;
-  });
-}
-document.getElementById("colorPicker").addEventListener("click", (e) => {
-  const sw = e.target.closest(".color-swatch");
-  if (!sw) return;
-  ui.selectedColor = sw.dataset.color;
-  syncColorPicker();
-});
-document.getElementById("typePicker").addEventListener("change", (e) => {
-  if (e.target.type === "radio") ui.selectedType = e.target.value;
-});
-
 /* ════════════════════════════════════════════════════
    M. KEYBOARD SHORTCUTS
    ════════════════════════════════════════════════════ */
@@ -1108,21 +1210,6 @@ skeletonStyle.textContent = `
 `;
 document.head.appendChild(skeletonStyle);
 
-// Kiểm tra đăng nhập
-// if (!getToken()) {
-//   logout("Bạn chưa đăng nhập.");
-// } else {
-//   // Tải boards từ DB ngay khi vào trang
-//   fetchAndRender().then(() => {
-//     if (!sessionStorage.getItem("taskly-greeted")) {
-//       sessionStorage.setItem("taskly-greeted", "1");
-//       const u = localStorage.getItem(LS.USERNAME) || "bạn";
-//       showToast(`Chào mừng trở lại, ${u}! 👋`, "success");
-//     }
-//   });
-// }
-// ĐOẠN CODE MỚI
-// Không cần getToken() nữa, vì Django Session (Cookie) đã xác thực người dùng.
 fetchAndRender().then(() => {
   if (!sessionStorage.getItem("taskly-greeted")) {
     sessionStorage.setItem("taskly-greeted", "1");

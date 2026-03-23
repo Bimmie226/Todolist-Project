@@ -38,6 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 1. Bắt buộc phải có Site framework của Django
+    'django.contrib.sites', 
+    # 2. Các app của Allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # 3. Provider Google (có thể thêm facebook, github... vào đây sau này)
+    'allauth.socialaccount.providers.google',
 
     'rest_framework',
     'tasks',
@@ -53,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'todolist_project.urls'
@@ -160,4 +169,27 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated', # Chỉ người đã đăng nhập mới gọi được API
     ]
-}   
+} 
+
+# ==========================================
+# CẤU HÌNH DJANGO-ALLAUTH (USERNAME DUY NHẤT)
+# ==========================================
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Cho phép gõ Email hoặc Username vào ô đăng nhập đều chạy được!
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+
+# Email vẫn bắt buộc và không được trùng
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+
+# BẬT LẠI: Bắt buộc phải có Username và KHÔNG được trùng
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_UNIQUE_USERNAME = True
+
+ACCOUNT_EMAIL_VERIFICATION = 'none' 
+LOGIN_REDIRECT_URL = '/boards/' 
+LOGOUT_REDIRECT_URL = '/'

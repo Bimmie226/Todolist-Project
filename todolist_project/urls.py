@@ -25,7 +25,7 @@ from tasks import views as task_views
 # Tạo router tự động sinh ra các đường dẫn /api/boards/
 router = DefaultRouter()
 router.register(r'boards', task_views.BoardViewSet, basename='board')
-# CŨ: router.register(r'boards', task_views.BoardViewSet, basename='board')
+
 router.register(r'tasks', task_views.TaskViewSet, basename='task')
 
 urlpatterns = [
@@ -34,6 +34,7 @@ urlpatterns = [
     path('', include('profiles.urls')),   
     
     path('accounts/', include('accounts.urls')),
+    path('accounts/', include('allauth.urls')),
     path('boards/', task_views.board_list, name='board_list'),
     path('api/', include(router.urls)),
 ]

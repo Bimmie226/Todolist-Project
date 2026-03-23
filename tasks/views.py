@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Category, Priority, Status, Task, Board
+from django.db.models import Q
 from django.db.models import F
 from django.shortcuts import render
 from rest_framework import viewsets
@@ -19,18 +20,21 @@ def board_list(request):
     boards = Board.objects.filter(owner=request.user)
     return render(request, 'tasks/board_list.html', {'boards': boards})
 
-# View hiển thị trang HTML gốc
-@login_required
-def board_list(request):
-    return render(request, 'tasks/board_list.html')
+# # View hiển thị trang HTML gốc
+# @login_required
+# def board_list(request):
+#     return render(request, 'tasks/board_list.html')
 
 # API View xử lý dữ liệu cho Javascript
 class BoardViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
 
     def get_queryset(self):
-        # Chỉ trả về các board thuộc về user đang đăng nhập
-        queryset = Board.objects.filter(owner=self.request.user)
+        user = self.request.user
+        # LẤY BOARD MÀ MÌNH LÀ CHỦ HOẶC LÀ THÀNH VIÊN
+        queryset = Board.objects.filter(
+            Q(owner=user) | Q(members=user)
+        ).distinct() # Dùng distinct() để tránh bị duplicate data
         
         # Xử lý các filter từ Javascript gửi lên (search, type, favorite, archived)
         search = self.request.query_params.get('search')
@@ -112,7 +116,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         # Nếu không có board_id, trả về tất cả task của user này (phòng hờ)
         return Task.objects.filter(board__owner=self.request.user)
 
-    # THÊM DÒNG NÀY: Để khi lưu Task mới, nó biết gán vào Board nào
+    # Để khi lưu Task mới, nó biết gán vào Board nào
     def perform_create(self, serializer):
         # Lấy board_id từ dữ liệu POST gửi lên
         board_id = self.request.data.get('board')
