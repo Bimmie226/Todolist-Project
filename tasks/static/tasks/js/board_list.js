@@ -549,14 +549,21 @@ function buildCard(board, idx) {
         <div class="card-members">
           ${members
             .slice(0, 4)
-            .map(
-              (m) => `
-            <span class="card-member-av"
-              style="background:${m.avatar ? `url(${m.avatar})` : "linear-gradient(135deg,#5b67f7,#a78bfa)"}"
-              title="${escHtml(m.username)}">
-              ${escHtml(m.initials || m.username.substring(0, 2).toUpperCase())}
-            </span>`,
-            )
+            .map((m) => {
+              // Xử lý chống sập: Kiểm tra xem m là Object (m.username) hay chỉ là chuỗi text
+              const uname = m?.username || (typeof m === "string" ? m : "User");
+              const avatarUrl = m?.avatar
+                ? `url(${m.avatar})`
+                : "linear-gradient(135deg,#5b67f7,#a78bfa)";
+              const initials = uname.substring(0, 2).toUpperCase();
+
+              return `
+              <span class="card-member-av"
+                style="background:${avatarUrl}"
+                title="${escHtml(uname)}">
+                ${escHtml(initials)}
+              </span>`;
+            })
             .join("")}
         </div>
         <div class="card-date">
