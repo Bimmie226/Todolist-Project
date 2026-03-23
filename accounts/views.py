@@ -103,6 +103,31 @@ def verify_otp(request):
 
     return render(request,'accounts/verify_otp.html')
 
+# Gửi lại mã OTP
+def resend_otp(request):
+    if request.method == "POST":
+        email = request.session.get('reset_email')
+
+        if not email:
+            messages.error(request, "Phiên làm việc đã hết hạn, vui lòng thử lại.")
+            return redirect('forgot_password')
+
+        otp = random.randint(100000, 999999)
+        request.session['reset_otp'] = otp
+
+        send_mail(
+            "Password Reset OTP",
+            f"Mã xác nhận mới của bạn là: {otp}",
+            "yourgmail@gmail.com",
+            [email],
+            fail_silently=False
+        )
+
+        messages.success(request, "Mã OTP mới đã được gửi đến email của bạn.")
+        return redirect('verify_otp')
+
+    return redirect('verify_otp')
+
 # Đặt lại mật khẩu
 def reset_password(request):
     if request.method == "POST":
