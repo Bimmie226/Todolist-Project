@@ -65,3 +65,10 @@ def update_profile_api(request):
         })
         
     return JsonResponse({"status": "error", "message": "Chỉ nhận phương thức POST"}, status=400)
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def user_logout(request):
+    logout(request) # Xóa SessionID trong Database/Cookie
+    return redirect('home') # Chuyển hướng về trang chủ

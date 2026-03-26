@@ -81,13 +81,19 @@ function saveTokens({ access, refresh }) {
   if (refresh) localStorage.setItem(LS.REFRESH, refresh);
 }
 
-/** Xóa tokens & chuyển về login */
+/** Đăng xuất thực sự trên cả Client và Server */
 function logout(reason = "") {
+  // 1. Xóa tokens ở LocalStorage (Dành cho JWT)
   localStorage.removeItem(LS.ACCESS);
   localStorage.removeItem(LS.REFRESH);
+  localStorage.removeItem("taskly-profile"); // Xóa thêm thông tin profile nếu có lưu
+
   if (reason) showToast(reason, "error");
+
+  // 2. Chuyển hướng đến Route logout của Django để xóa Session
   setTimeout(() => {
-    window.location.href = "/";
+    // URL này phải khớp với path('logout/', ...) trong urls.py của bạn
+    window.location.href = "/logout/";
   }, 1200);
 }
 

@@ -89,12 +89,12 @@
             aria-label="Menu người dùng"
             aria-expanded="false"
           >
-            <span id="userInitials">TN</span>
+            <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
-              <span class="ud-name" id="udName">Taskly User</span>
-              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+              <span class="ud-name" id="udName">{{ user.username }}</span>
+              <span class="ud-email" id="udEmail">{{ user.email }}</span>
             </div>
             <hr class="ud-divider" />
             <button>
@@ -168,13 +168,10 @@
             </button>
 
             <p class="sidebar__section-label">Khám phá</p>
-            <button
-              class="sidebar__item"
-              onclick="showToast('Tính năng đang phát triển.', 'info')"
-            >
-              <i class="ph-bold ph-trend-up"></i>
-              <span>Phổ biến</span>
-            </button>
+            <a href="{% url 'dashboard_gui' %}" class="sidebar__item">
+              <i class="ph-bold ph-chart-bar"></i>
+              <span>Dashboard</span>
+            </a>
             <button
               class="sidebar__item"
               onclick="showToast('Tính năng đang phát triển.', 'info')"

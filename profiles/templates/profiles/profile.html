@@ -106,8 +106,8 @@
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
-              <span class="ud-name" id="udName">Taskly User</span>
-              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+              <span class="ud-name">{{ user.username }}</span>
+              <span class="ud-email">{{ user.email }}</span>
             </div>
             <hr class="ud-divider" />
             <a
@@ -613,8 +613,9 @@
     <script>
       const API_PROFILE_ME = '{% url "get_profile_api" %}';
       const API_PROFILE_UPDATE = '{% url "update_profile_api" %}';
+      const URL_LOGOUT = '{% url "logout" %}'; 
     </script>
 
-    <script src="{% static 'profiles/js/profile.js' %}?v=2026"></script>
+    <script src="{% static 'profiles/js/profile.js' %}?v=2028"></script>
   </body>
 </html>

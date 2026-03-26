@@ -85,6 +85,7 @@ TEMPLATES = [
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/boards/'
+LOGOUT_REDIRECT_URL = 'home'
 
 # 3. Cấu hình cho Allauth
 SITE_ID = 1  # Đảm bảo bạn đã thêm 'django.contrib.sites' vào INSTALLED_APPS

@@ -295,13 +295,20 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
 })();
 
-document.getElementById("btnLogout").addEventListener("click", () => {
-  localStorage.removeItem("taskly-access-token");
-  showToast("Đã đăng xuất.", "info");
-  setTimeout(() => {
-    location.href = "/";
-  }, 1000);
-});
+const btnLogout = document.getElementById("btnLogout");
+
+if (btnLogout) {
+  btnLogout.addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    showToast("Đang đăng xuất...", "info");
+
+    setTimeout(() => {
+      // Gọi đến URL logout để Django xóa Session trên Server
+      window.location.href = "/logout/";
+    }, 800);
+  });
+}
 
 /* ════════════════════════════════════════════════════
    E. SIDEBAR & HEADER

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('logout/', views.user_logout, name='logout'),
     # Đây là đường dẫn trả về file HTML của bạn
     path('profile/', views.profile_view, name='profile'), 
     

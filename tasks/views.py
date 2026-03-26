@@ -7,8 +7,9 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
-from .models import Board
 from .serializers import BoardSerializer
+from .serializers import TaskSerializer
+from rest_framework import viewsets, permissions
 
 # Trang chủ
 def home(request):
@@ -27,6 +28,7 @@ def board_list(request):
 
 # API View xử lý dữ liệu cho Javascript
 class BoardViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = BoardSerializer
 
     def get_queryset(self):
@@ -103,10 +105,8 @@ def task_list(request, board_id):
         'tasks': tasks
     })
 
-from .models import Task
-from .serializers import TaskSerializer
-
 class TaskViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = TaskSerializer
 
     def get_queryset(self):
@@ -122,3 +122,5 @@ class TaskViewSet(viewsets.ModelViewSet):
         board_id = self.request.data.get('board')
         board = get_object_or_404(Board, id=board_id, owner=self.request.user)
         serializer.save(board=board)
+
+    

@@ -80,12 +80,12 @@
         </button>
         <div class="user-menu" id="userMenuWrap">
           <button class="user-avatar" id="userAvatarBtn" aria-expanded="false">
-            <span id="userInitials">TN</span>
+            <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
-              <span class="ud-name" id="udName">Taskly User</span>
-              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+              <span class="ud-name" id="udName">{{ user.username }}</span>
+              <span class="ud-email" id="udEmail">{{ user.email }}</span>
             </div>
             <hr class="ud-divider" />
             <button>

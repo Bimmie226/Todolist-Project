@@ -270,15 +270,20 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Logout
-document.getElementById("btnLogout").addEventListener("click", () => {
-  localStorage.removeItem("taskly-access-token");
-  showToast("Đã đăng xuất.", "info");
-  setTimeout(() => {
-    location.href = "login.html";
-  }, 1000);
-});
+const btnLogout = document.getElementById("btnLogout");
 
+if (btnLogout) {
+  btnLogout.addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    showToast("Đang đăng xuất...", "info");
+
+    setTimeout(() => {
+      // Gọi đến URL logout để Django xóa Session trên Server
+      window.location.href = "/logout/"; 
+    }, 800);
+  });
+}
 /* ════════════════════════════════════════════════════
    F. PROFILE DATA LOADER — render VIEW mode
    ════════════════════════════════════════════════════ */
