@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'tasks',
     'accounts',
-    'profiles'
+    'profiles',
+    'charts'
 ]
 
 MIDDLEWARE = [
@@ -84,6 +85,13 @@ TEMPLATES = [
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/boards/'
+
+# 3. Cấu hình cho Allauth
+SITE_ID = 1  # Đảm bảo bạn đã thêm 'django.contrib.sites' vào INSTALLED_APPS
+
+# 4. Tùy chỉnh hành vi (Tùy chọn)
+SOCIALACCOUNT_LOGIN_ON_GET = True # Bấm nút là đi luôn, không hiện trang trung gian "Confirm"
+ACCOUNT_LOGOUT_ON_GET = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -170,6 +178,21 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated', # Chỉ người đã đăng nhập mới gọi được API
     ]
 } 
+# settings.py
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Tự động đăng ký nếu chưa có
+ACCOUNT_SESSION_REMEMBER = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+# Tự động liên kết tài khoản mạng xã hội với tài khoản email đã tồn tại
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Đường dẫn tới Class Adapter bạn vừa viết (thay 'accounts' bằng tên app của bạn)
+SOCIALACCOUNT_ADAPTER = 'accounts.adapter.MySocialAccountAdapter'
+
+# Các cấu hình bổ trợ để bỏ qua các bước trung gian
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # Hoặc 'username_email'
+ACCOUNT_EMAIL_VERIFICATION = 'none'    # Bỏ qua bước xác thực mail thủ công
 
 # ==========================================
 # CẤU HÌNH DJANGO-ALLAUTH (USERNAME DUY NHẤT)
@@ -191,5 +214,18 @@ ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_UNIQUE_USERNAME = True
 
 ACCOUNT_EMAIL_VERIFICATION = 'none' 
-LOGIN_REDIRECT_URL = '/boards/' 
 LOGOUT_REDIRECT_URL = '/'
+# settings.py
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+    }
+}

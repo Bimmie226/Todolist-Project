@@ -124,11 +124,12 @@
           </div>
 
           <!-- Google SSO -->
+          {% load socialaccount %}
           <div class="social-row">
-            <button
+            <a
+              href="{% provider_login_url 'google' %}"
               class="social-btn"
-              type="button"
-              onclick="showToast('Google sign-up chưa được tích hợp.', 'info')"
+              style="text-decoration: none"
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path
@@ -149,7 +150,7 @@
                 />
               </svg>
               Đăng ký với Google
-            </button>
+            </a>
           </div>
 
           <!-- Divider -->
