@@ -66,13 +66,13 @@ const DEFAULT_PROFILE = {
 
 /** Completion checklist items (field → label) */
 const COMPLETION_ITEMS = [
-  { key: "name", label: "Họ và tên" },
+  { key: "full_name", label: "Họ và tên" },
   { key: "email", label: "Email" },
   { key: "phone", label: "Số điện thoại" },
-  { key: "birthDate", label: "Ngày sinh" },
+  { key: "birth_date", label: "Ngày sinh" },
   { key: "address", label: "Địa chỉ" },
   { key: "bio", label: "Giới thiệu bản thân" },
-  { key: "avatar", label: "Ảnh đại diện" },
+  { key: "avatar_url", label: "Ảnh đại diện" },
 ];
 
 /* ════════════════════════════════════════════════════
@@ -280,7 +280,7 @@ if (btnLogout) {
 
     setTimeout(() => {
       // Gọi đến URL logout để Django xóa Session trên Server
-      window.location.href = "/logout/"; 
+      window.location.href = "/logout/";
     }, 800);
   });
 }
@@ -373,62 +373,97 @@ function renderAvatar(avatarUrl, name) {
    G. PROFILE COMPLETION CALCULATOR
    ════════════════════════════════════════════════════ */
 function renderCompletion(profile) {
+  if (!profile) return;
+
   let filled = 0;
   const list = document.getElementById("completionChecklist");
-  list.innerHTML = "";
+  
+  // Xóa danh sách cũ nếu có
+  if (list) list.innerHTML = "";
 
   COMPLETION_ITEMS.forEach((item) => {
-    const done = !!(profile[item.key] && String(profile[item.key]).trim());
+    // Lấy giá trị từ profile dựa trên key (ví dụ: profile['full_name'])
+    const value = profile[item.key];
+    
+    // Kiểm tra xem trường đó có dữ liệu thực sự hay không (không null, không rỗng)
+    const done = !!(value && String(value).trim() && value !== "null");
+    
     if (done) filled++;
-    const li = document.createElement("li");
-    li.className = `cc-item ${done ? "cc-item--done" : "cc-item--todo"}`;
-    li.innerHTML = `
-      <i class="ph-bold ${done ? "ph-check-circle" : "ph-circle"}"></i>
-      <span>${escHtml(item.label)}</span>`;
-    list.appendChild(li);
+
+    // Chỉ render danh sách nếu element tồn tại
+    if (list) {
+      const li = document.createElement("li");
+      li.className = `cc-item ${done ? "cc-item--done" : "cc-item--todo"}`;
+      li.innerHTML = `
+        <i class="ph-bold ${done ? "ph-check-circle" : "ph-circle"}"></i>
+        <span>${escHtml(item.label)}</span>`;
+      list.appendChild(li);
+    }
   });
 
+  // Tính toán phần trăm
   const pct = Math.round((filled / COMPLETION_ITEMS.length) * 100);
 
-  // Update all completion indicators
-  document.getElementById("completionPct").textContent = `${pct}%`;
-  document.getElementById("completionBar").style.width = `${pct}%`;
-  document.getElementById("sidebarCompletion").textContent = `${pct}%`;
-  document.getElementById("sidebarCompletionBar").style.width = `${pct}%`;
+  // Cập nhật các chỉ số hiển thị (Sử dụng Optional Chaining ?. để tránh lỗi nếu thiếu Element)
+  const elements = {
+    pctText: document.getElementById("completionPct"),
+    bar: document.getElementById("completionBar"),
+    sidebarText: document.getElementById("sidebarCompletion"),
+    sidebarBar: document.getElementById("sidebarCompletionBar")
+  };
+
+  if (elements.pctText) elements.pctText.textContent = `${pct}%`;
+  if (elements.bar) elements.bar.style.width = `${pct}%`;
+  
+  // Các element ở sidebar thường có thể không tồn tại ở mọi trang, nên cần check kỹ
+  if (elements.sidebarText) elements.sidebarText.textContent = `${pct}%`;
+  if (elements.sidebarBar) elements.sidebarBar.style.width = `${pct}%`;
+
+  console.log(`[Profile] Completion: ${pct}% (${filled}/${COMPLETION_ITEMS.length})`);
 }
 
 /* ════════════════════════════════════════════════════
-   H. STATS LOADER
+   H. STATS LOADER — Lấy dữ liệu thực từ API
    ════════════════════════════════════════════════════ */
-function loadStats() {
+async function loadStats() {
   try {
-    const boards = JSON.parse(localStorage.getItem(LS.BOARDS) || "[]");
-    const activeBoards = boards.filter((b) => !b.is_archived);
+    // 1. Gọi đồng thời API Boards và Tasks để lấy số liệu tổng quát
+    const [resBoards, resTasks] = await Promise.all([
+        fetch('/api/boards/'),
+        fetch('/api/tasks/')
+    ]);
 
-    let totalTasks = 0,
-      doneTasks = 0;
-    activeBoards.forEach((board) => {
-      const key = `taskly-tasks-${board.id}`;
-      const tasks = JSON.parse(localStorage.getItem(key) || "[]");
-      totalTasks += tasks.length;
-      doneTasks += tasks.filter((t) => t.status === "done").length;
-    });
+    if (!resBoards.ok || !resTasks.ok) throw new Error("Lỗi tải stats");
 
+    const boards = await resBoards.json();
+    const tasks = await resTasks.json();
+
+    // 2. Lọc dữ liệu (Bỏ qua các board đã lưu trữ - archived)
+    const activeBoards = boards.filter(b => !b.is_archived);
+    const doneTasks = tasks.filter(t => t.status === "done").length;
+
+    // 3. Đổ dữ liệu vào giao diện
     document.getElementById("statBoards").textContent = activeBoards.length;
-    document.getElementById("statTasks").textContent = totalTasks;
+    document.getElementById("statTasks").textContent = tasks.length;
     document.getElementById("statDone").textContent = doneTasks;
 
-    // Sidebar badge
-    document.getElementById("badgeAll").textContent = activeBoards.length;
+    // Cập nhật Badge trên Sidebar nếu có
+    const badgeAll = document.getElementById("badgeAll");
+    if (badgeAll) badgeAll.textContent = activeBoards.length;
 
-    // Streak (simple: number of days since joined, capped at 7 for demo)
+    // Tính ngày tham gia (Streak) - Có thể lấy từ profile.date_joined nếu Backend trả về
+    // Tạm thời giữ logic tính từ LocalStorage nếu chưa có API
     const joined = localStorage.getItem(LS.JOINED);
     const daysUsed = joined
       ? Math.min(Math.floor((Date.now() - new Date(joined)) / 86400000) + 1, 99)
       : 1;
     document.getElementById("statStreak").textContent = daysUsed;
-  } catch {
-    // Fail silently — stats are non-critical
+
+  } catch (err) {
+    console.error("Không thể tải thống kê từ API:", err);
+    // Nếu lỗi, hiện số 0 thay vì để trống
+    document.getElementById("statBoards").textContent = "0";
+    document.getElementById("statTasks").textContent = "0";
   }
 }
 
@@ -749,7 +784,7 @@ async function saveProfile(silent = false) {
       const data = await response.json();
       console.log("👉 6. Dữ liệu server trả về:", data);
 
-      if (!silent) showToast("Đã lưu vào Database thành công! ✨", "success");
+      if (!silent) showToast("Đã lưu thành công! ✨", "success");
 
       renderProfile(data.profile);
       renderCompletion(data.profile);

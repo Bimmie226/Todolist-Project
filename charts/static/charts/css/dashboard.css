@@ -275,12 +275,35 @@ a.sidebar__item.active::before {
 
 /* ─── 7. PROGRESS LIST ───────────────────────────────────── */
 .progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-top: 4px;
+    display: block;      /* Đảm bảo khối nhận max-height */
+    max-height: 350px;   /* Hiển thị khoảng 4 mục, vượt quá sẽ cuộn */
+    overflow-y: auto;    /* Bật cuộn dọc */
+    overflow-x: hidden;  /* Tắt cuộn ngang */
+    padding-right: 8px;  /* Tạo khoảng trống để thanh cuộn không đè lên nội dung */
+    margin-top: 10px;
+}
+
+/* Tùy chỉnh thanh cuộn cho đồng bộ với biểu đồ Phân loại Task */
+.progress-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.progress-list::-webkit-scrollbar-track {
+    background: var(--surface-2);
+    border-radius: 10px;
+}
+
+.progress-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+.progress-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
 }
 .progress-item {
+    margin-bottom: 20px; /* Khoảng cách giữa các board */
+    width: 100%;
 }
 .progress-item__top {
   display: flex;
@@ -621,4 +644,65 @@ a.sidebar__item.active::before {
   .stat-cards {
     grid-template-columns: 1fr;
   }
+}
+
+/* dashboard.css */
+
+.donut-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Outfit', sans-serif;
+    width: 100%; /* Ép item rộng hết cỡ vùng chứa để không bị méo khi có scroll */
+}
+
+.donut-legend-emoji {
+  font-size: 1.2rem;
+  margin-right: 10px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.donut-legend-label {
+  flex: 1;
+  color: var(--text-main);
+}
+
+.donut-legend-val {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Tìm đến ID donutLegend trong dashboard.css và cập nhật */
+#donutLegend {
+    display: block;      /* CHUYỂN THÀNH BLOCK: Để max-height hoạt động chính xác hơn flex */
+    max-height: 80px;   /* Giới hạn hiển thị khoảng 4 mục */
+    overflow-y: auto;    /* Bật cuộn dọc */
+    overflow-x: hidden;  /* Chống tràn ngang */
+    padding-right: 8px;  
+    margin-top: 5px;
+    
+    /* Đảm bảo không bị các thuộc tính flex từ layout cha can thiệp */
+    flex-shrink: 1; 
+}
+
+/* Tùy chỉnh thanh cuộn để trông hiện đại hơn (giống giao diện chung) */
+#donutLegend::-webkit-scrollbar {
+    width: 5px;
+}
+
+#donutLegend::-webkit-scrollbar-track {
+    background: var(--surface-2);
+    border-radius: 10px;
+}
+
+#donutLegend::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+#donutLegend::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
 }

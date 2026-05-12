@@ -4,6 +4,6 @@ from . import views
 
 urlpatterns = [
     path('analytics/', views.dashboard_view, name='dashboard_gui'),
-    path('dashboard/', views.BoardAnalyticsView.as_view(), name='general_dashboard'),
-    path('boards/<uuid:pk>/', BoardAnalyticsView.as_view(), name='board-analytics'),
+    path('api/dashboard/', views.BoardAnalyticsView.as_view(), name='general_dashboard'),
+    path('api/boards/<uuid:pk>/', BoardAnalyticsView.as_view(), name='board-analytics'),
 ]

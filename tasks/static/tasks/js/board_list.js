@@ -153,8 +153,7 @@ function authHeaders(extra = {}) {
    ════════════════════════════════════════════════════
    Tất cả fetch() calls đều nằm ở đây.
    UI code không bao giờ gọi fetch() trực tiếp.
-   Swap URL này với production domain mà không cần
-   thay đổi bất kỳ dòng UI code nào.
+   Swap URL này với production domain
    ════════════════════════════════════════════════════ */
 const BoardAPI = {
   /**
@@ -196,8 +195,7 @@ const BoardAPI = {
   },
 
   /**
-   * GET /api/boards/
-   * Lấy danh sách boards có filter & search.
+   * Lấy danh sách boards có filter & search. (GET /api/boards/)
    * @param {Object} params — { search, type, favorite, archived, ordering }
    */
   async getAll(params = {}) {
@@ -224,8 +222,7 @@ const BoardAPI = {
   },
 
   /**
-   * POST /api/boards/
-   * Tạo board mới, lưu vào DB, trả về board vừa tạo.
+   * Tạo board mới, lưu vào DB, trả về board vừa tạo.(POST /api/boards/)
    * @param {Object} payload — { name, desc, color, board_type }
    */
   async create(payload) {
@@ -238,8 +235,7 @@ const BoardAPI = {
   },
 
   /**
-   * PATCH /api/boards/{id}/
-   * Cập nhật một phần board.
+   * Cập nhật một phần board.(PATCH /api/boards/{id}/)
    * @param {string} id
    * @param {Object} payload
    */
@@ -253,8 +249,7 @@ const BoardAPI = {
   },
 
   /**
-   * DELETE /api/boards/{id}/
-   * Xóa board khỏi DB.
+   * Xóa board khỏi DB.(DELETE /api/boards/{id}/)
    */
   async delete(id) {
     return this._fetch(`/boards/${id}/`, {
@@ -287,8 +282,7 @@ const BoardAPI = {
   },
 
   /**
-   * GET /api/boards/stats/
-   * Lấy số liệu thống kê cho sidebar badges.
+   * Lấy số liệu thống kê cho sidebar badges.(GET /api/boards/stats/)
    */
   async getStats() {
     return this._fetch("/boards/stats/");
@@ -966,7 +960,6 @@ document.getElementById("ctxDelete").addEventListener("click", async () => {
 
   if (!confirm(`Xóa board "${name}"?\nHành động này không thể hoàn tác.`))
     return;
-
   try {
     const res = await BoardAPI.delete(id);
     showToast(res.message || `Board "${name}" đã bị xóa.`, "error");

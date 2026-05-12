@@ -14,7 +14,7 @@
  *  I. Mini calendar
  *  J. Insights & suggestions
  *  K. Period switch (week / month)
- *  L. Export PNG
+ *  L. Export PNG 
  *  M. Init
  */
 
@@ -29,121 +29,37 @@ const LS = {
   BOARDS: "taskly-boards-db",
 };
 
-/* ── Weekly data ── */
-const WEEKLY_DATA = {
-  labels: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-  values: [3, 7, 4, 6, 2, 1, 0], // tasks completed per day
-  total: 23,
-};
-
-/* ── Monthly data ── */
-const MONTHLY_DATA = {
-  labels: [
-    "T1",
-    "T2",
-    "T3",
-    "T4",
-    "T5",
-    "T6",
-    "T7",
-    "T8",
-    "T9",
-    "T10",
-    "T11",
-    "T12",
-    "T13",
-    "T14",
-    "T15",
-    "T16",
-    "T17",
-    "T18",
-    "T19",
-    "T20",
-    "T21",
-    "T22",
-    "T23",
-    "T24",
-    "T25",
-    "T26",
-    "T27",
-    "T28",
-    "T29",
-    "T30",
-  ],
-  values: [
-    1, 2, 4, 3, 5, 2, 0, 1, 3, 4, 6, 5, 4, 2, 1, 3, 4, 7, 5, 4, 2, 1, 3, 4, 5,
-    3, 2, 1, 0, 2,
-  ],
-  total: 83,
-};
-
-/* ── Burndown data ── */
-const BURNDOWN_SPRINT = {
-  labels: Array.from({ length: 10 }, (_, i) => `Ngày ${i + 1}`),
-  ideal: [20, 18, 16, 14, 12, 10, 8, 6, 4, 0],
-  actual: [20, 19, 17, 14, 12, 9, 7, 5, 3, 1],
-};
-const BURNDOWN_MONTH = {
-  labels: Array.from({ length: 20 }, (_, i) => `Ngày ${i + 1}`),
-  ideal: [
-    45, 43, 41, 39, 37, 35, 33, 31, 28, 25, 22, 19, 16, 13, 10, 7, 5, 3, 1, 0,
-  ],
-  actual: [
-    45, 44, 42, 39, 36, 33, 30, 27, 25, 22, 20, 17, 14, 11, 9, 7, 4, 3, 2, 0,
-  ],
-};
-
-/* ── KPI stats ── */
-const KPI = {
-  done: 38,
-  total: 45,
-  overdue: 3,
-  avgTime: 2.3, // hours
-  score: 84, // percent
-};
-
-/* ── Board progress ── */
-const BOARD_PROGRESS = [
-  { name: "Website Redesign", done: 16, total: 24, color: "#5b67f7" },
-  { name: "Marketing Q3", done: 9, total: 18, color: "#f59e0b" },
-  { name: "DevOps Setup", done: 10, total: 12, color: "#22c55e" },
-  { name: "Tuyển dụng 2025", done: 3, total: 8, color: "#ec4899" },
-  { name: "Kế hoạch cá nhân", done: 7, total: 15, color: "#0ea5e9" },
-];
-
-/* ── Category data (for donut) ── */
-const CATEGORIES = [
-  { label: "Development", count: 18, color: "#5b67f7" },
-  { label: "Design", count: 12, color: "#0ea5e9" },
-  { label: "Marketing", count: 8, color: "#f59e0b" },
-  { label: "Research", count: 5, color: "#22c55e" },
-  { label: "Khác", count: 2, color: "#9ca3af" },
-];
-
-/* ── Calendar mock data: tasks per day this month ── */
-function generateCalData() {
-  const data = {};
-  const now = new Date();
-  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  for (let d = 1; d <= days; d++) {
-    // Simulate random completions (0–8)
-    data[d] = Math.random() < 0.3 ? 0 : Math.floor(Math.random() * 8) + 1;
-  }
-  return data;
-}
-const CAL_DATA = generateCalData();
-
-/* ── State ── */
 const state = {
-  period: "week", // week | month
-  chartType: "bar", // bar | line
-  bdPeriod: "sprint", // sprint | month
+  period: "week",
+  chartType: "bar",
+  bdPeriod: "sprint",
   calDate: new Date(),
+  currentData: null, // Lưu trữ dữ liệu từ API để dùng chung
 };
 
+/* dashboard.js - Section A */
+function getColorEmoji(hex) {
+    if (!hex) return '❌';
+    // Ép kiểu về viết thường và xóa khoảng trắng thừa
+    const cleanHex = String(hex).toLowerCase().trim(); 
+    
+    const colorMap = {
+        '#6366f1': '🟣', // Công việc
+        '#0ea5e9': '🔵', // Học tập
+        '#10b981': '🟢', // Sức khỏe
+        '#ec4899': '🌸', // Gia đình
+        '#f59e0b': '🟡', // Tài chính
+        '#8b5cf6': '💜', // Việc nhà
+        '#f43f5e': '🔴', // Giải trí
+        '#64748b': '⚪', // Quản trị
+        '#94a3b8': '🔘'  // Khác
+    };
+    return colorMap[cleanHex] || '❌';
+}
 /* ════════════════════════════════════════════════════
    B. THEME & SHARED UI
    ════════════════════════════════════════════════════ */
+//  dùng để điều chỉnh sáng tối cho ứng dựng
 const html = document.documentElement;
 
 (function initTheme() {
@@ -167,19 +83,26 @@ function applyIconState(theme) {
   const s = document.getElementById("iconSun");
   const m = document.getElementById("iconMoon");
   if (s && m) {
-    s.style.display = theme === "dark" ? "none" : "";
-    m.style.display = theme === "dark" ? "" : "none";
+    s.style.display = theme === "dark" ? "none" : "block"; 
+    m.style.display = theme === "dark" ? "block" : "none";
   }
 }
 
 /* User info */
 (function loadUser() {
-  const username = localStorage.getItem(LS.USERNAME) || "user";
-  document.getElementById("userInitials").textContent = username
-    .substring(0, 2)
-    .toUpperCase();
-  document.getElementById("udName").textContent = username;
-  document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
+  const username = window.TasklyConfig ? window.TasklyConfig.username : "User";
+  const email = window.TasklyConfig
+    ? window.TasklyConfig.email
+    : "user@taskly.vn";
+
+  const initialsEl = document.getElementById("userInitials");
+  if (initialsEl) {
+    initialsEl.textContent = username.substring(0, 2).toUpperCase();
+  }
+  if (document.getElementById("udName"))
+    document.getElementById("udName").textContent = username;
+  if (document.getElementById("udEmail"))
+    document.getElementById("udEmail").textContent = email;
 })();
 
 /* Sidebar collapse */
@@ -219,7 +142,7 @@ document.addEventListener("click", (e) => {
 document.getElementById("btnLogout").addEventListener("click", () => {
   showToast("Đã đăng xuất.", "info");
   setTimeout(() => {
-    location.href = "login.html";
+    location.href = "/logout/";
   }, 1000);
 });
 
@@ -261,46 +184,50 @@ document.querySelectorAll(".reveal").forEach((el) => revealObs.observe(el));
 /* ════════════════════════════════════════════════════
    D. KPI STAT CARDS
    ════════════════════════════════════════════════════ */
-function renderKPI() {
-  animateCount("kpiDone", 0, KPI.done, 1200);
-  animateCount("kpiOverdue", 0, KPI.overdue, 800);
-  animateCount("kpiScore", 0, KPI.score, 1500, "%");
+// Sửa hàm để nhận tham số 'stats' từ API thay vì dùng biến KPI giả
+function renderKPI(stats) {
+  if (!stats) return;
 
-  // Average time
+  // 1. Hiển thị số task hoàn thành (completed_tasks)
+  animateCount("kpiDone", 0, stats.completed_tasks, 1200);
+
+  // 2. Hiển thị số task quá hạn (overdue_tasks)
+  animateCount("kpiOverdue", 0, stats.overdue_tasks, 800);
+
+  // 3. Hiển thị điểm năng suất (productivity_score)
+  animateCount("kpiScore", 0, stats.productivity_score, 1500, "%");
+
+  // 4. Xử lý thời gian trung bình (Tạm thời fix 2.3h hoặc bạn có thể bổ sung vào API)
+  const avgTime = 2.3;
   const avgEl = document.getElementById("kpiAvgTime");
-  let startTime = 0;
-  const step = () => {
-    startTime = Math.min(startTime + 0.1, KPI.avgTime);
-    avgEl.textContent = startTime.toFixed(1) + "h";
-    if (startTime < KPI.avgTime) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  if (avgEl) {
+    let startTime = 0;
+    const step = () => {
+      startTime = Math.min(startTime + 0.1, avgTime);
+      avgEl.textContent = startTime.toFixed(1) + "h";
+      if (startTime < avgTime) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
 
-  // Sidebar score
-  document.getElementById("sidebarScore").textContent = `${KPI.score}%`;
-  document.getElementById("sidebarScoreBar").style.width = `${KPI.score}%`;
-}
+  // 5. Cập nhật thanh tiến độ ở Sidebar (sidebarScore)
+  const sidebarScoreEl = document.getElementById("sidebarScore");
+  const sidebarScoreBar = document.getElementById("sidebarScoreBar");
 
-function animateCount(id, from, to, duration, suffix = "") {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const start = performance.now();
-  const run = (now) => {
-    const p = Math.min((now - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(from + (to - from) * ease) + suffix;
-    if (p < 1) requestAnimationFrame(run);
-  };
-  requestAnimationFrame(run);
+  if (sidebarScoreEl)
+    sidebarScoreEl.textContent = `${stats.productivity_score}%`;
+  if (sidebarScoreBar)
+    sidebarScoreBar.style.width = `${stats.productivity_score}%`;
 }
 
 /* ════════════════════════════════════════════════════
    E. PRODUCTIVITY CHART
    ════════════════════════════════════════════════════ */
+// Biến toàn cục để quản lý instance của biểu đồ
 let prodChart = null;
 
 function getChartColors() {
-  const isDark = html.getAttribute("data-theme") === "dark";
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
   return {
     grid: isDark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)",
     text: isDark ? "#9095b3" : "#6b7280",
@@ -309,55 +236,49 @@ function getChartColors() {
   };
 }
 
-function buildProductivityChart() {
-  const data = state.period === "week" ? WEEKLY_DATA : MONTHLY_DATA;
+// SỬA: Thêm tham số 'apiData' để nhận dữ liệu từ Backend
+function buildProductivityChart(apiData) {
+  // Nếu không có dữ liệu từ API, thoát hàm để tránh lỗi
+  if (!apiData || apiData.length === 0) return;
+
   const colors = getChartColors();
   const ctx = document.getElementById("productivityChart").getContext("2d");
 
+  // Xóa biểu đồ cũ trước khi vẽ mới để tránh bị đè dữ liệu
   if (prodChart) prodChart.destroy();
 
-  // Find max day for highlight
-  const maxIdx = data.values.indexOf(Math.max(...data.values));
-  const bgColors = data.values.map((_, i) =>
-    i === maxIdx ? colors.accent : colors.accentA,
-  );
-  const borderColors = data.values.map((_, i) =>
-    i === maxIdx ? "#4454e8" : colors.accent,
-  );
+  // Chuyển đổi dữ liệu từ API sang định dạng Chart.js
+  const labels = apiData.map(item => item.day); // ['T2', 'T3', ...]
+  const values = apiData.map(item => item.completed); // [3, 7, ...]
+
+  // Tìm chỉ số (index) của ngày có năng suất cao nhất
+  const maxVal = Math.max(...values);
+  const maxIdx = values.indexOf(maxVal);
+
+  // Thiết lập màu sắc: Ngày cao nhất sẽ có màu đậm (accent), các ngày khác màu nhạt (accentA)
+  const bgColors = values.map((_, i) => (i === maxIdx ? colors.accent : colors.accentA));
 
   prodChart = new Chart(ctx, {
-    type: state.chartType,
+    type: state.chartType, // Lấy từ biến state (bar hoặc line)
     data: {
-      labels: data.labels,
-      datasets: [
-        {
+      labels: labels,
+      datasets: [{
           label: "Tasks hoàn thành",
-          data: data.values,
-          backgroundColor:
-            state.chartType === "bar" ? bgColors : colors.accentA,
-          borderColor: state.chartType === "bar" ? borderColors : colors.accent,
+          data: values,
+          backgroundColor: state.chartType === "bar" ? bgColors : colors.accentA,
+          borderColor: colors.accent,
           borderWidth: 2,
-          borderRadius: state.chartType === "bar" ? 6 : 0,
           tension: 0.4,
           fill: state.chartType === "line",
-          pointBackgroundColor: colors.accent,
-          pointRadius: state.chartType === "line" ? 4 : 0,
-          pointHoverRadius: 6,
-        },
-      ],
+      }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 800, easing: "easeOutQuart" },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: "rgba(26,29,46,.95)",
-          titleColor: "#fff",
-          bodyColor: "#9095b3",
-          borderColor: "#2e3147",
-          borderWidth: 1,
           padding: 10,
           callbacks: {
             label: (ctx) => ` ${ctx.parsed.y} tasks hoàn thành`,
@@ -365,63 +286,57 @@ function buildProductivityChart() {
         },
       },
       scales: {
-        x: {
-          grid: { color: colors.grid, drawTicks: false },
-          ticks: { color: colors.text, font: { size: 11 } },
-          border: { display: false },
-        },
-        y: {
-          grid: { color: colors.grid },
-          ticks: { color: colors.text, font: { size: 11 }, precision: 0 },
-          border: { display: false },
-          beginAtZero: true,
+        x: { grid: { color: colors.grid }, ticks: { color: colors.text } },
+        y: { 
+            grid: { color: colors.grid }, 
+            ticks: { color: colors.text, precision: 0 }, 
+            beginAtZero: true 
         },
       },
     },
   });
 
-  // Update best day badge
-  const days = [
-    "Thứ Hai",
-    "Thứ Ba",
-    "Thứ Tư",
-    "Thứ Năm",
-    "Thứ Sáu",
-    "Thứ Bảy",
-    "Chủ Nhật",
-  ];
-  const bestLabel =
-    state.period === "week"
-      ? days[maxIdx] || data.labels[maxIdx]
-      : data.labels[maxIdx];
-  document.getElementById("bestDayText").textContent =
-    `Năng suất cao nhất: ${bestLabel} (${Math.max(...data.values)} tasks)`;
-  document.getElementById("prodSubtitle").textContent =
-    state.period === "week"
-      ? "Tasks hoàn thành mỗi ngày trong tuần"
-      : `Tổng ${data.total} tasks hoàn thành trong tháng`;
-}
+  // Cập nhật nội dung badge "Năng suất cao nhất"
+  const bestDayText = document.getElementById("bestDayText");
+  if (bestDayText) {
+    bestDayText.textContent = maxVal > 0 
+        ? `Năng suất cao nhất: ${labels[maxIdx]} (${maxVal} tasks)` 
+        : "Chưa có dữ liệu hoàn thành";
+  }
 
+  // Cập nhật phụ đề
+  const subTitle = document.getElementById("prodSubtitle");
+  if (subTitle) {
+      subTitle.textContent = state.period === "week" 
+        ? "Tasks hoàn thành mỗi ngày trong tuần" 
+        : "Tasks hoàn thành trong tháng";
+  }
+}
 /* ════════════════════════════════════════════════════
-   F. BURN-DOWN CHART
+   F. BURN-DOWN CHART (REAL DATA)
    ════════════════════════════════════════════════════ */
 let burnChart = null;
 
-function buildBurndownChart() {
-  const data = state.bdPeriod === "sprint" ? BURNDOWN_SPRINT : BURNDOWN_MONTH;
-  const colors = getChartColors();
-  const ctx = document.getElementById("burndownChart").getContext("2d");
+function buildBurndownChart(apiBurndownData) {
+  // Kiểm tra nếu không có dữ liệu từ API thì không vẽ
+  if (!apiBurndownData) return;
 
+  const colors = getChartColors(); // Lấy màu sắc theo theme hiện tại
+  const canvas = document.getElementById("burndownChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  // Hủy biểu đồ cũ nếu đã tồn tại để tránh lỗi ghi đè
   if (burnChart) burnChart.destroy();
 
   burnChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: data.labels,
+      labels: apiBurndownData.labels, // ["01/05", "02/05", ...] từ Backend
       datasets: [
         {
           label: "Lý tưởng",
-          data: data.ideal,
+          data: apiBurndownData.ideal, // Đường thẳng giảm dần lý tưởng
           borderColor: colors.grid.replace(".08", ".5"),
           borderDash: [6, 4],
           borderWidth: 1.5,
@@ -431,7 +346,7 @@ function buildBurndownChart() {
         },
         {
           label: "Thực tế",
-          data: data.actual,
+          data: apiBurndownData.actual, // Số lượng task thực tế còn lại
           borderColor: "#5b67f7",
           backgroundColor: "rgba(91,103,247,.1)",
           borderWidth: 2.5,
@@ -454,30 +369,24 @@ function buildBurndownChart() {
           labels: {
             color: colors.text,
             font: { size: 11 },
-            boxWidth: 12,
-            boxHeight: 2,
-            padding: 12,
           },
         },
         tooltip: {
           backgroundColor: "rgba(26,29,46,.95)",
-          titleColor: "#fff",
-          bodyColor: "#9095b3",
-          borderColor: "#2e3147",
-          borderWidth: 1,
           padding: 10,
+          callbacks: {
+            label: (context) => ` Còn lại: ${context.parsed.y} tasks`
+          }
         },
       },
       scales: {
         x: {
           grid: { display: false },
           ticks: { color: colors.text, font: { size: 10 }, maxTicksLimit: 8 },
-          border: { display: false },
         },
         y: {
           grid: { color: colors.grid },
           ticks: { color: colors.text, font: { size: 11 }, precision: 0 },
-          border: { display: false },
           beginAtZero: true,
         },
       },
@@ -486,17 +395,25 @@ function buildBurndownChart() {
 }
 
 /* ════════════════════════════════════════════════════
-   G. PROGRESS LIST
+   G. PROGRESS LIST (DỮ LIỆU THẬT)
    ════════════════════════════════════════════════════ */
-function renderProgressList() {
+function renderProgressList(boards) {
   const list = document.getElementById("progressList");
+  if (!list || !boards) return;
+
+  // 1. Làm trống danh sách hiện tại
   list.innerHTML = "";
 
-  BOARD_PROGRESS.forEach((board, idx) => {
-    const pct = board.total ? Math.round((board.done / board.total) * 100) : 0;
+  // 2. Lặp qua danh sách Board từ API trả về
+  boards.forEach((board, idx) => {
+    // Backend đã tính sẵn giá trị 'progress'
+    const pct = board.progress || 0; 
     const item = document.createElement("div");
     item.className = "progress-item";
+    
+    // Tạo độ trễ hiệu ứng cho từng dòng
     item.style.animationDelay = `${idx * 0.06}s`;
+    
     item.innerHTML = `
       <div class="progress-item__top">
         <span class="progress-item__name">${escHtml(board.name)}</span>
@@ -506,13 +423,13 @@ function renderProgressList() {
       </div>
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill"
-          style="width:0%;background:${escHtml(board.color)}"
+          style="width: 0%; background: ${escHtml(board.color)}"
           data-target="${pct}"></div>
       </div>`;
     list.appendChild(item);
   });
 
-  // Animate bars after a short delay
+  // 3. Kích hoạt hiệu ứng chạy thanh tiến độ
   requestAnimationFrame(() => {
     document.querySelectorAll(".progress-bar-fill").forEach((bar) => {
       setTimeout(() => {
@@ -523,75 +440,72 @@ function renderProgressList() {
 }
 
 /* ════════════════════════════════════════════════════
-   H. CATEGORY DONUT CHART
+   H. CATEGORY DONUT CHART (DỮ LIỆU THẬT)
    ════════════════════════════════════════════════════ */
 let donutChart = null;
 
-function buildDonutChart() {
-  const ctx = document.getElementById("categoryChart").getContext("2d");
-  const total = CATEGORIES.reduce((s, c) => s + c.count, 0);
-  const colors = getChartColors();
+function buildDonutChart(apiCategories) {
+  const canvas = document.getElementById("categoryChart");
+  const totalEl = document.getElementById("donutTotal"); 
+  const legendEl = document.getElementById("donutLegend");
 
-  document.getElementById("donutTotal").textContent = total;
+  if (!canvas || !apiCategories) return;
+
+  const ctx = canvas.getContext("2d");
+  const total = apiCategories.reduce((s, c) => s + (c.count || 0), 0);
+  
+  if (totalEl) totalEl.textContent = total;
+
+  const bgColors = apiCategories.map(c => c.color || '#5b67f7');
 
   if (donutChart) donutChart.destroy();
 
   donutChart = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: CATEGORIES.map((c) => c.label),
-      datasets: [
-        {
-          data: CATEGORIES.map((c) => c.count),
-          backgroundColor: CATEGORIES.map((c) => c.color),
-          borderWidth: 3,
-          borderColor:
-            html.getAttribute("data-theme") === "dark" ? "#1a1d2e" : "#fff",
-          hoverOffset: 6,
-        },
-      ],
+      labels: apiCategories.map(c => c.label),
+      datasets: [{
+        data: apiCategories.map(c => c.count),
+        backgroundColor: bgColors,
+        borderWidth: 3,
+        borderColor: document.documentElement.getAttribute("data-theme") === "dark" ? "#1a1d2e" : "#fff",
+        hoverOffset: 8
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "68%",
-      animation: { duration: 900 },
+      cutout: "75%",
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: "rgba(26,29,46,.95)",
-          titleColor: "#fff",
-          bodyColor: "#9095b3",
-          borderColor: "#2e3147",
-          borderWidth: 1,
-          padding: 10,
           callbacks: {
-            label: (ctx) =>
-              ` ${ctx.label}: ${ctx.parsed} tasks (${Math.round((ctx.parsed / total) * 100)}%)`,
-          },
-        },
-      },
-    },
+            label: (ctx) => ` ${ctx.label}: ${ctx.parsed} tasks`
+          }
+        }
+      }
+    }
   });
 
-  // Build legend
-  const legend = document.getElementById("donutLegend");
-  legend.innerHTML = "";
-  CATEGORIES.forEach((c) => {
-    const item = document.createElement("div");
-    item.className = "donut-legend-item";
-    item.innerHTML = `
-      <span class="donut-legend-dot" style="background:${c.color}"></span>
-      <span class="donut-legend-label">${escHtml(c.label)}</span>
-      <span class="donut-legend-val">${c.count}</span>`;
-    legend.appendChild(item);
-  });
+  // Đổ dữ liệu Legend kèm Emoji vào HTML
+  if (legendEl) {
+    legendEl.innerHTML = apiCategories.map(c => {
+      const emoji = getColorEmoji(c.color); 
+      return `
+        <div class="donut-legend-item">
+          <span class="donut-legend-emoji">${emoji}</span>
+          <span class="donut-legend-label">${escHtml(c.label)}</span>
+          <span class="donut-legend-val">${c.count}</span>
+        </div>
+      `;
+    }).join("");
+  }
 }
 
 /* ════════════════════════════════════════════════════
-   I. MINI CALENDAR
+   I. MINI CALENDAR (DỮ LIỆU THẬT)
    ════════════════════════════════════════════════════ */
-function renderCalendar() {
+function renderCalendar(calData) {
   const d = state.calDate;
   const year = d.getFullYear();
   const month = d.getMonth();
@@ -604,25 +518,23 @@ function renderCalendar() {
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  // Convert Sunday=0 to Monday=0
-  const startOffset = (firstDay + 6) % 7;
+  const startOffset = (firstDay + 6) % 7; // Chuyển Chủ Nhật (0) thành Thứ Hai (0)
 
   const dayHeaders = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   let html_str = '<div class="cal-grid">';
 
-  // Headers
   dayHeaders.forEach((h) => {
     html_str += `<div class="cal-day-header">${h}</div>`;
   });
 
-  // Empty cells
   for (let i = 0; i < startOffset; i++) {
     html_str += `<div class="cal-day empty"></div>`;
   }
 
-  // Day cells
   for (let day = 1; day <= daysInMonth; day++) {
-    const tasks = CAL_DATA[day] || 0;
+    // SỬA: Lấy dữ liệu từ calData truyền vào thay vì CAL_DATA giả
+    const tasks = calData ? (calData[day] || 0) : 0; 
+    
     const isToday =
       year === today.getFullYear() &&
       month === today.getMonth() &&
@@ -630,6 +542,8 @@ function renderCalendar() {
 
     let cls = "cal-day";
     if (isToday) cls += " today";
+    
+    // Gắn class màu sắc dựa trên số lượng thực tế từ DB
     if (tasks >= 6) cls += " has-tasks-high";
     else if (tasks >= 3) cls += " has-tasks-mid";
     else if (tasks >= 1) cls += " has-tasks-low";
@@ -641,98 +555,106 @@ function renderCalendar() {
   document.getElementById("miniCalendar").innerHTML = html_str;
 }
 
-document.getElementById("calPrev").addEventListener("click", () => {
-  state.calDate = new Date(
-    state.calDate.getFullYear(),
-    state.calDate.getMonth() - 1,
-    1,
-  );
-  renderCalendar();
-});
-document.getElementById("calNext").addEventListener("click", () => {
-  state.calDate = new Date(
-    state.calDate.getFullYear(),
-    state.calDate.getMonth() + 1,
-    1,
-  );
-  renderCalendar();
-});
-
 /* ════════════════════════════════════════════════════
-   J. INSIGHTS & SUGGESTIONS
+   J. INSIGHTS & SUGGESTIONS (LOGIC THỰC TẾ)
    ════════════════════════════════════════════════════ */
-const INSIGHT_POOL = [
-  // Observations
-  {
-    type: "info",
-    icon: "ph-trophy",
-    title: "Ngày năng suất nhất",
-    desc: "Bạn hoàn thành nhiều task nhất vào Thứ Năm. Hãy tận dụng năng lượng đó!",
-  },
-  {
-    type: "success",
-    icon: "ph-trend-up",
-    title: "Xu hướng tích cực",
-    desc: "Thời gian hoàn thành trung bình đang giảm. Bạn đang làm việc hiệu quả hơn.",
-  },
-  {
-    type: "warning",
-    icon: "ph-warning-circle",
-    title: "Task quá hạn",
-    desc: `Bạn có ${KPI.overdue} task đang quá hạn. Hãy xử lý chúng sớm nhất có thể.`,
-  },
-  {
-    type: "info",
-    icon: "ph-chart-line-up",
-    title: "Điểm năng suất",
-    desc: `Điểm năng suất của bạn là ${KPI.score}% — cao hơn mức trung bình 68%.`,
-  },
-  {
-    type: "success",
-    icon: "ph-check-circle",
-    title: "Hoàn thành board",
-    desc: 'Board "DevOps Setup" đạt 83% tiến độ. Chỉ còn 2 task nữa là xong!',
-  },
-  {
-    type: "warning",
-    icon: "ph-clock-countdown",
-    title: "Deadline gần",
-    desc: "3 task trong board Marketing Q3 sẽ đến hạn trong 2 ngày tới.",
-  },
-  // Suggestions
+
+// Kho lưu trữ các lời khuyên chung (Suggestions)
+const SUGGESTION_POOL = [
   {
     type: "info",
     icon: "ph-lightbulb",
     title: "Lời khuyên",
-    desc: "Hãy chia task lớn thành các task nhỏ hơn để dễ theo dõi tiến độ.",
+    desc: "Hãy chia task lớn thành các task nhỏ hơn để dễ dàng theo dõi tiến độ và không bị ngợp.",
   },
   {
     type: "success",
     icon: "ph-rocket-launch",
-    title: "Gợi ý tăng năng suất",
-    desc: "Tăng ưu tiên task gần deadline. Dùng Pomodoro 25 phút để duy trì tập trung.",
+    title: "Tăng năng suất",
+    desc: "Thử áp dụng phương pháp Pomodoro (25 phút làm, 5 phút nghỉ) để duy trì sự tập trung cao độ.",
   },
   {
     type: "info",
     icon: "ph-calendar-check",
-    title: "Lên kế hoạch ngày mai",
-    desc: "Hãy chuẩn bị danh sách task vào cuối ngày hôm nay để bắt đầu sớm hơn.",
+    title: "Lên kế hoạch",
+    desc: "Dành 5 phút cuối ngày để liệt kê các đầu việc cho ngày mai giúp bạn bắt đầu buổi sáng hiệu quả hơn.",
   },
+  {
+    type: "info",
+    icon: "ph-brain",
+    title: "Sức khỏe tinh thần",
+    desc: "Đừng quên nghỉ ngơi và uống nước đầy đủ. Một trí tuệ minh mẫn sẽ giải quyết task nhanh hơn.",
+  }
 ];
 
-function renderInsights() {
+/**
+ * Hàm render Insights dựa trên dữ liệu thật từ Backend
+ * @param {Object} stats - Đối tượng chứa completed_tasks, overdue_tasks, productivity_score...
+ */
+function renderInsights(stats) {
   const grid = document.getElementById("insightsGrid");
+  if (!grid) return;
+  
   grid.innerHTML = "";
+  const displayList = [];
 
-  // Pick 6 random insights
-  const shuffled = [...INSIGHT_POOL]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 6);
+  // --- 1. TẠO CÁC INSIGHTS DỰA TRÊN DỮ LIỆU THỰC (OBSERVATIONS) ---
 
-  shuffled.forEach((insight, idx) => {
+  // Cảnh báo task quá hạn
+  if (stats && stats.overdue_tasks > 0) {
+    displayList.push({
+      type: "warning",
+      icon: "ph-warning-circle",
+      title: "Task quá hạn",
+      desc: `Bạn đang có ${stats.overdue_tasks} task đã quá hạn chót. Hãy ưu tiên xử lý chúng ngay để đảm bảo tiến độ dự án.`,
+    });
+  }
+
+  // Khen ngợi nếu điểm năng suất cao
+  if (stats && stats.productivity_score >= 80) {
+    displayList.push({
+      type: "success",
+      icon: "ph-trophy",
+      title: "Hiệu suất tuyệt vời",
+      desc: `Điểm năng suất của bạn đạt ${stats.productivity_score}%. Bạn đang quản lý công việc cực kỳ hiệu quả!`,
+    });
+  } 
+  // Khuyến khích nếu điểm năng suất thấp
+  else if (stats && stats.productivity_score < 50 && stats.total_tasks > 0) {
+    displayList.push({
+      type: "info",
+      icon: "ph-chart-line-up",
+      title: "Cố gắng lên!",
+      desc: `Tỷ lệ hoàn thành hiện tại là ${stats.productivity_score}%. Hãy tập trung xử lý các task nhỏ để tăng điểm năng suất nhé.`,
+    });
+  }
+
+  // Thông báo về xu hướng (Ví dụ: Dựa trên số lượng hoàn thành)
+  if (stats && stats.completed_tasks > 0) {
+    displayList.push({
+      type: "success",
+      icon: "ph-trend-up",
+      title: "Xu hướng tích cực",
+      desc: `Bạn đã hoàn thành tổng cộng ${stats.completed_tasks} công việc. Một con số rất đáng khích lệ!`,
+    });
+  }
+
+  // --- 2. TRỘN THÊM CÁC LỜI KHUYÊN NGẪU NHIÊN ĐỂ ĐỦ 6 THẺ ---
+  
+  // Trộn danh sách lời khuyên chung
+  const randomSuggestions = [...SUGGESTION_POOL].sort(() => Math.random() - 0.5);
+  
+  // Thêm vào danh sách hiển thị cho đến khi đủ 6 (hoặc hết pool)
+  while (displayList.length < 6 && randomSuggestions.length > 0) {
+    displayList.push(randomSuggestions.pop());
+  }
+
+  // --- 3. VẼ CÁC THẺ LÊN GIAO DIỆN ---
+  displayList.forEach((insight, idx) => {
     const card = document.createElement("div");
     card.className = `insight-card insight-card--${insight.type}`;
-    card.style.animationDelay = `${idx * 0.07}s`;
+    card.style.animationDelay = `${idx * 0.07}s`; // Hiệu ứng xuất hiện so le
+    
     card.innerHTML = `
       <i class="ph-bold ${insight.icon} insight-card__icon"></i>
       <div class="insight-card__text">
@@ -743,61 +665,95 @@ function renderInsights() {
   });
 }
 
-document.getElementById("btnRefreshInsights").addEventListener("click", () => {
-  renderInsights();
-  showToast("Insights đã được cập nhật!", "info");
-});
+// Sự kiện nút "Làm mới" Insights
+const btnRefresh = document.getElementById("btnRefreshInsights");
+if (btnRefresh) {
+  btnRefresh.addEventListener("click", () => {
+    // Gọi lại hàm render với dữ liệu stats hiện tại đang lưu trong state
+    if (window.state && window.state.currentData) {
+      renderInsights(window.state.currentData.stats);
+      if (window.showToast) window.showToast("Insights đã được cập nhật!", "info");
+    }
+  });
+}
 
 /* ════════════════════════════════════════════════════
-   K. PERIOD SWITCH + CHART TYPE TOGGLE
+    K. PERIOD SWITCH + CHART TYPE TOGGLE (REAL DATA)
    ════════════════════════════════════════════════════ */
-// Period tabs (Week / Month)
+
+// 1. Chuyển đổi Tuần / Tháng
 document.querySelectorAll(".period-tab").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    state.period = btn.dataset.period;
-    document
-      .querySelectorAll(".period-tab")
-      .forEach((b) => b.classList.remove("active"));
+  btn.addEventListener("click", async () => {
+    state.period = btn.dataset.period; // Cập nhật trạng thái 'week' hoặc 'month'
+    
+    // Cập nhật giao diện nút
+    document.querySelectorAll(".period-tab").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
-    buildProductivityChart();
+
+    // LƯU Ý: Khi đổi sang Tháng, bạn nên gọi lại API để lấy dữ liệu 30 ngày
+    // Nếu chưa sửa Backend lấy 30 ngày, hàm này sẽ vẽ lại dữ liệu 7 ngày hiện có
+    if (state.currentData) {
+        buildProductivityChart(state.currentData.weekly_productivity);
+    }
   });
 });
 
-// Chart type toggle (Bar / Line)
-document.getElementById("chartBar").addEventListener("click", () => {
+// 2. Chuyển đổi Bar / Line
+document.getElementById("chartBar")?.addEventListener("click", () => {
   state.chartType = "bar";
-  document.getElementById("chartBar").classList.add("active");
-  document.getElementById("chartLine").classList.remove("active");
-  buildProductivityChart();
-});
-document.getElementById("chartLine").addEventListener("click", () => {
-  state.chartType = "line";
-  document.getElementById("chartLine").classList.add("active");
-  document.getElementById("chartBar").classList.remove("active");
-  buildProductivityChart();
+  updateToggleUI("chartBar", "chartLine");
+  if (state.currentData) buildProductivityChart(state.currentData.weekly_productivity);
 });
 
-// Burndown period toggle
-document.getElementById("bdSprint").addEventListener("click", () => {
-  state.bdPeriod = "sprint";
-  document.getElementById("bdSprint").classList.add("active");
-  document.getElementById("bdMonth").classList.remove("active");
-  buildBurndownChart();
+document.getElementById("chartLine")?.addEventListener("click", () => {
+  state.chartType = "line";
+  updateToggleUI("chartLine", "chartBar");
+  if (state.currentData) buildProductivityChart(state.currentData.weekly_productivity);
 });
-document.getElementById("bdMonth").addEventListener("click", () => {
+
+// 3. Chuyển đổi Burndown Sprint / Month
+document.getElementById("bdSprint")?.addEventListener("click", () => {
+  state.bdPeriod = "sprint";
+  updateToggleUI("bdSprint", "bdMonth");
+  if (state.currentData) buildBurndownChart(state.currentData.burndown);
+});
+
+document.getElementById("bdMonth")?.addEventListener("click", () => {
   state.bdPeriod = "month";
-  document.getElementById("bdMonth").classList.add("active");
-  document.getElementById("bdSprint").classList.remove("active");
-  buildBurndownChart();
+  updateToggleUI("bdMonth", "bdSprint");
+  if (state.currentData) buildBurndownChart(state.currentData.burndown);
+});
+
+// Hàm bổ trợ để cập nhật Class Active cho gọn code
+function updateToggleUI(activeId, inactiveId) {
+    document.getElementById(activeId)?.classList.add("active");
+    document.getElementById(inactiveId)?.classList.remove("active");
+}
+
+document.getElementById("calPrev")?.addEventListener("click", () => {
+  state.calDate.setMonth(state.calDate.getMonth() - 1);
+  initDashboard(); // Tải lại dữ liệu cho tháng trước đó
+});
+
+document.getElementById("calNext")?.addEventListener("click", () => {
+  state.calDate.setMonth(state.calDate.getMonth() + 1);
+  initDashboard(); // Tải lại dữ liệu cho tháng kế tiếp
 });
 
 /* ════════════════════════════════════════════════════
-   THEME: re-build all charts when theme changes
+   THEME: Vẽ lại toàn bộ biểu đồ khi đổi giao diện (REAL DATA)
    ════════════════════════════════════════════════════ */
 function updateAllChartsTheme() {
-  buildProductivityChart();
-  buildBurndownChart();
-  buildDonutChart();
+  // Kiểm tra xem đã có dữ liệu từ Database chưa
+  if (!state.currentData) return;
+
+  // Lấy dữ liệu đã lưu trong state để vẽ lại
+  const { weekly_productivity, burndown, category_distribution } = state.currentData;
+
+  // Gọi lại các hàm vẽ với dữ liệu thật
+  buildProductivityChart(weekly_productivity);
+  buildBurndownChart(burndown);
+  buildDonutChart(category_distribution);
 }
 
 /* ════════════════════════════════════════════════════
@@ -821,6 +777,21 @@ window.exportDashboard = exportDashboard;
 document.getElementById("btnExport").addEventListener("click", exportDashboard);
 
 /* ════════════════════════════════════════════════════
+   UTILITY (Bổ sung hàm bị thiếu)
+   ════════════════════════════════════════════════════ */
+function animateCount(id, from, to, duration, suffix = "") {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const start = performance.now();
+  const run = (now) => {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3); // Hiệu ứng Out-Cubic mượt mà
+    el.textContent = Math.round(from + (to - from) * ease) + suffix;
+    if (p < 1) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+/* ════════════════════════════════════════════════════
    UTILITY
    ════════════════════════════════════════════════════ */
 function escHtml(s) {
@@ -834,42 +805,61 @@ function escHtml(s) {
 }
 
 /* ════════════════════════════════════════════════════
-   M. INIT — render everything
+   M. INIT — KHỞI CHẠY HỆ THỐNG (BẢN DỮ LIỆU THẬT)
    ════════════════════════════════════════════════════ */
-(function init() {
-  // Stagger renders slightly so charts don't compete for paint
-  renderKPI();
-  renderProgressList();
-  renderCalendar();
-  renderInsights();
 
-  setTimeout(() => {
-    buildProductivityChart();
-    buildBurndownChart();
-    buildDonutChart();
-  }, 150);
+async function initDashboard() {
+  // 1. Lấy ID board từ URL nếu người dùng đang xem board cụ thể
+  const urlParams = new URLSearchParams(window.location.search);
+  const boardId = urlParams.get('board');
+  
+  // URL khớp với cấu trúc trong urls.py của bạn
+  let apiUrl = boardId ? `/charts/api/boards/${boardId}/` : "/charts/api/dashboard/";
 
-  // Sidebar badge from boards DB
   try {
-    const boards = JSON.parse(localStorage.getItem(LS.BOARDS) || "[]");
-    document.getElementById("badgeAll").textContent = boards.filter(
-      (b) => !b.is_archived,
-    ).length;
-  } catch {
-    /* ignore */
-  }
+    // 2. Gọi API để lấy dữ liệu từ Database
+    const response = await fetch(apiUrl, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    if (!response.ok) throw new Error("Lỗi kết nối server");
+    
+    const data = await response.json();
+    state.currentData = data; // Lưu dữ liệu vào state để dùng cho đổi Theme/Period
 
-  // Welcome toast
-  if (!sessionStorage.getItem("dash-greeted")) {
-    sessionStorage.setItem("dash-greeted", "1");
-    const u = localStorage.getItem(LS.USERNAME) || "bạn";
-    setTimeout(
-      () =>
-        showToast(
-          `Xin chào ${u}! Đây là dashboard phân tích của bạn 📊`,
-          "success",
-        ),
-      700,
-    );
+    // 3. Render các thành phần giao diện tĩnh
+    document.querySelector(".page-title").textContent = data.board_name;
+    renderKPI(data.stats);
+    renderProgressList(data.board_progress);
+    renderCalendar(data.calendar_data);
+    renderInsights(data.stats); // Truyền stats vào để lọc lời khuyên thông minh
+
+    // 4. Vẽ các biểu đồ (Vẽ sau một chút để đảm bảo UI mượt mà)
+    setTimeout(() => {
+      buildProductivityChart(data.weekly_productivity);
+      buildBurndownChart(data.burndown);
+      buildDonutChart(data.category_distribution);
+    }, 150);
+
+    // 5. Cập nhật Badge số lượng Board ở Sidebar từ dữ liệu thật
+    const badgeAll = document.getElementById("badgeAll");
+    if (badgeAll) {
+      badgeAll.textContent = data.stats.total_boards || "0";
+    }
+
+    // 6. Thông báo chào mừng (Lấy tên thật từ window.TasklyConfig)
+    if (!sessionStorage.getItem("dash-greeted")) {
+      sessionStorage.setItem("dash-greeted", "1");
+      const username = window.TasklyConfig ? window.TasklyConfig.username : "bạn";
+      setTimeout(() => {
+        showToast(`Xin chào ${username}! Dashboard đã sẵn sàng 📊`, "success");
+      }, 700);
+    }
+
+  } catch (error) {
+    console.error("Init Error:", error);
+    showToast("Không thể tải dữ liệu phân tích từ database!", "error");
   }
-})();
+}
+
+// Thay thế IIFE cũ bằng sự kiện DOMContentLoaded để đảm bảo an toàn
+document.addEventListener("DOMContentLoaded", initDashboard);

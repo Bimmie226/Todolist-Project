@@ -6,6 +6,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'boards', views.BoardViewSet, basename='board')
 router.register(r'tasks', views.TaskViewSet, basename='task')
+router.register(r'categories', views.CategoryViewSet, basename='category')
 
 urlpatterns = [
     # Trang chủ và danh sách (HTML Render)

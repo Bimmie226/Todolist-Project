@@ -70,10 +70,10 @@
         </button>
 
         <!-- Notifications -->
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
 
         <!-- Create board (desktop) -->
         <button class="btn btn--primary" id="btnCreateDesktop">
@@ -184,12 +184,8 @@
           <!-- Sidebar footer -->
           <div class="sidebar__footer">
             <div class="storage-bar">
-              <div class="storage-bar__top">
-                <span>Dung lượng</span>
-                <span class="storage-bar__val">2.4 / 5 GB</span>
-              </div>
               <div class="storage-bar__track">
-                <div class="storage-bar__fill" style="width: 48%"></div>
+                <div class="storage-bar__fill" style="width: 100%"></div>
               </div>
             </div>
           </div>
@@ -592,7 +588,7 @@
     <ul class="context-menu" id="contextMenu" role="menu">
       <li>
         <button class="ctx-item" id="ctxEdit">
-          <i class="ph-bold ph-pencil-simple"></i> Đổi tên
+          <i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa
         </button>
       </li>
       <li>

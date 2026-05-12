@@ -8,12 +8,12 @@
     <!-- Reuse shared layout styles from board_list -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=2026"
+      href="{% static 'tasks/css/board_list.css' %}?v=1111"
     />
     <!-- Task-specific styles (extend, never override layout) -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/task_list.css' %}?v=2026"
+      href="{% static 'tasks/css/task_list.css' %}?v=1111"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -70,10 +70,10 @@
           <i class="ph-bold ph-sun" id="iconSun"></i>
           <i class="ph-bold ph-moon" id="iconMoon"></i>
         </button>
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
         <button class="btn btn--primary" id="btnCreateTask">
           <i class="ph-bold ph-plus"></i>
           Tạo Task
@@ -186,13 +186,13 @@
             <div class="task-progress-mini">
               <div class="task-progress-mini__label">
                 <span>Tiến độ board</span>
-                <span id="progressPct">0%</span>
+                <span id="progressPct">100%</span>
               </div>
               <div class="storage-bar__track">
                 <div
                   class="storage-bar__fill"
                   id="progressBar"
-                  style="width: 0%"
+                  style="width: 100%"
                 ></div>
               </div>
             </div>
@@ -278,11 +278,6 @@
           <div class="filter-bar__inner">
             <select class="filter-select" id="filterCategory">
               <option value="">Tất cả danh mục</option>
-              <option value="design">Design</option>
-              <option value="development">Development</option>
-              <option value="marketing">Marketing</option>
-              <option value="research">Research</option>
-              <option value="other">Khác</option>
             </select>
             <select class="filter-select" id="filterStatus">
               <option value="">Tất cả trạng thái</option>
@@ -483,12 +478,7 @@
             <div class="mfield">
               <label class="mfield__label" for="taskCategory">Danh mục</label>
               <select id="taskCategory" class="mfield__input mfield__select">
-                <option value="design">🎨 Design</option>
-                <option value="development">💻 Development</option>
-                <option value="marketing">📣 Marketing</option>
-                <option value="research">🔬 Research</option>
-                <option value="other">📌 Khác</option>
-              </select>
+                </select>
             </div>
             <div class="mfield">
               <label class="mfield__label" for="taskPriority">Ưu tiên</label>
@@ -610,6 +600,6 @@
       const DJANGO_BOARD_DESC = "{{ board.desc|escapejs }}";
     </script>
 
-    <script src="{% static 'tasks/js/task_list.js' %}?v=2026"></script>
+    <script src="{% static 'tasks/js/task_list.js' %}?v=1111"></script>
   </body>
 </html>

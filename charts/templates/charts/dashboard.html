@@ -7,9 +7,9 @@
     <title>Dashboard — Taskly</title>
 
     <!-- Reuse shared layout -->
-    <link rel="stylesheet" href="{% static 'charts/css/dashboard.css' %}" />
+    <link rel="stylesheet" href="{% static 'charts/css/dashboard.css' %}?v=3333" />
     <!-- Dashboard-specific styles -->
-    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}" />
+    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}?v=3333" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -70,10 +70,10 @@
           <i class="ph-bold ph-sun" id="iconSun"></i>
           <i class="ph-bold ph-moon" id="iconMoon"></i>
         </button>
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
         <a href="{% url 'board_list' %}" class="btn btn--primary">
           <i class="ph-bold ph-squares-four"></i>
           Boards
@@ -393,7 +393,7 @@
                 <p class="chart-card__sub">Theo danh mục</p>
               </div>
             </div>
-            <div class="donut-wrap">
+            <div class="donut-wrapper">
               <canvas id="categoryChart"></canvas>
               <div class="donut-center" id="donutCenter">
                 <span class="donut-center__num" id="donutTotal">0</span>
@@ -404,11 +404,7 @@
           </div>
 
           <!-- Mini calendar -->
-          <div
-            class="chart-card reveal"
-            style="--delay: 0.45s"
-            id="calendarCard"
-          >
+          <div class="chart-card reveal" style="--delay: 0.45s" id="calendarCard">
             <div class="chart-card__header">
               <div>
                 <h3 class="chart-card__title">Lịch hoạt động</h3>
@@ -416,17 +412,18 @@
               </div>
               <div class="chart-card__actions">
                 <button class="chart-action-btn" id="calPrev">‹</button>
+                
                 <span class="cal-month-label" id="calMonthLabel"></span>
+                
                 <button class="chart-action-btn" id="calNext">›</button>
               </div>
             </div>
+
             <div class="mini-calendar" id="miniCalendar"></div>
+
             <div class="cal-legend">
               <span class="cal-legend__item">
-                <span
-                  class="cal-dot"
-                  style="background: var(--accent-light)"
-                ></span>
+                <span class="cal-dot" style="background: var(--accent-light)"></span>
                 1–2
               </span>
               <span class="cal-legend__item">
@@ -471,7 +468,14 @@
     >
       <i class="ph-bold ph-download-simple"></i>
     </button>
+    <script>
+      // Cầu nối dữ liệu từ Django sang JS
+      window.TasklyConfig = {
+        username: "{{ request.user.username|default:'User' }}",
+        boardId: "{{ board.id|default:'' }}"
+      };
+    </script>
 
-    <script src="{% static 'charts/js/dashboard.js' %}?v=1001"></script>
+    <script src="{% static 'charts/js/dashboard.js' %}?v=3333"></script>
   </body>
 </html>

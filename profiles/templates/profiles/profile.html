@@ -8,12 +8,12 @@
     <!-- Reuse shared layout -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=2026"
+      href="{% static 'tasks/css/board_list.css' %}?v=3333"
     />
     <!-- Profile-specific styles -->
     <link
       rel="stylesheet"
-      href="{% static 'profiles/css/profile.css' %}?v=2026"
+      href="{% static 'profiles/css/profile.css' %}?v=3333"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,10 +72,10 @@
           <i class="ph-bold ph-moon" id="iconMoon"></i>
         </button>
 
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
 
         <a href="{% url 'board_list' %}" class="btn btn--primary">
           <i class="ph-bold ph-squares-four"></i>
@@ -616,6 +616,6 @@
       const URL_LOGOUT = '{% url "logout" %}'; 
     </script>
 
-    <script src="{% static 'profiles/js/profile.js' %}?v=2028"></script>
+    <script src="{% static 'profiles/js/profile.js' %}?v=3333"></script>
   </body>
 </html>

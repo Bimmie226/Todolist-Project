@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Task, Board, Status, Priority
+from .models import Task, Board, Status, Priority, Category
 from django.contrib.auth import get_user_model
 from .models import Board
 
@@ -12,8 +12,7 @@ class BoardSerializer(serializers.ModelSerializer):
     done_tasks = serializers.SerializerMethodField()
     completion_pct = serializers.SerializerMethodField()
     
-    # 2. THÊM MỚI: Trường nhận mảng username từ giao diện gửi lên
-    # write_only=True vì ta chỉ nhận vào để xử lý, lúc trả ra DB thì trả ra qua trường model
+    # 2. Trường nhận mảng username từ giao diện gửi lên
     members = serializers.ListField(
         child=serializers.CharField(), 
         required=False, 
@@ -109,26 +108,34 @@ class BoardSerializer(serializers.ModelSerializer):
         ]
         
         return representation
+    
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'color']
 
 class TaskSerializer(serializers.ModelSerializer):
     # Đổi slug_field thành 'name' để khớp với Model của bạn
     status = serializers.SlugRelatedField(slug_field='name', queryset=Status.objects.all())
     priority = serializers.SlugRelatedField(slug_field='name', queryset=Priority.objects.all())
-    
-    # Map dueDate (JS) với due_date (DB)
     dueDate = serializers.DateField(source='due_date', required=False, allow_null=True)
+    
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), 
+        many=True, 
+        required=False
+    )
 
     class Meta:
         model = Task
-        # Tạm thời bỏ qua 'category' để test tạo task chạy trước đã
-        fields = ['id', 'board', 'title', 'desc', 'status', 'priority', 'dueDate', 'assignee', 'created_at', 'updated_at']
+        fields = [
+            'id', 'board', 'title', 'desc', 'status', 
+            'priority', 'dueDate', 'assignee', 'category',
+            'created_at', 'updated_at'
+        ]
 
-    def to_internal_value(self, data):
-        # Xử lý dữ liệu từ JS gửi lên
-        if data.get('dueDate') == "":
-            data['dueDate'] = None
-        
-        # CHỖ NÀY CỰC QUAN TRỌNG: 
-        # JS gửi lên "Cần làm", nhưng trong DB có thể bạn lưu là "Cần làm" (có dấu)
-        # Hãy đảm bảo giá trị gửi lên từ JS khớp 100% với cột 'name' trong Database
-        return super().to_internal_value(data)
+def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Chuyển đổi dữ liệu trả về từ "category" (trong DB) thành "categories" (số nhiều) để khớp với JS
+        representation['categories'] = [cat.id for cat in instance.category.all()]
+        return representation

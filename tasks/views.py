@@ -7,8 +7,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
-from .serializers import BoardSerializer
-from .serializers import TaskSerializer
+from .serializers import BoardSerializer, TaskSerializer, CategorySerializer
 from rest_framework import viewsets, permissions
 
 # Trang chủ
@@ -20,11 +19,6 @@ def home(request):
 def board_list(request):
     boards = Board.objects.filter(owner=request.user)
     return render(request, 'tasks/board_list.html', {'boards': boards})
-
-# # View hiển thị trang HTML gốc
-# @login_required
-# def board_list(request):
-#     return render(request, 'tasks/board_list.html')
 
 # API View xử lý dữ liệu cho Javascript
 class BoardViewSet(viewsets.ModelViewSet):
@@ -94,11 +88,32 @@ class BoardViewSet(viewsets.ModelViewSet):
 
 #--------------------------------------------------------------------------------------------------------------------
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CategorySerializer
+    
+    def get_queryset(self):
+        # Bạn có thể trả về tất cả danh mục hoặc lọc theo user nếu cần
+        return Category.objects.all()
+    
 @login_required
 # Hiển thị danh sách công việc theo bảng
 def task_list(request, board_id):
-    board = get_object_or_404(Board, id=board_id, owner=request.user)
-    tasks = Task.objects.filter(board=board)
+    # Sử dụng filter + distinct trước khi gọi get_object_or_404
+    # Điều này đảm bảo dù có JOIN Many-to-Many thì cũng chỉ trả về 1 Board duy nhất
+    board_queryset = Board.objects.filter(id=board_id).filter(
+        Q(owner=request.user) | Q(members=request.user)
+    ).distinct()
+
+    board = get_object_or_404(board_queryset)
+
+    # Phân quyền hiển thị Task
+    if board.owner_id == request.user.id:
+        # Nếu là chủ Board: Thấy TẤT CẢ task
+        tasks = Task.objects.filter(board=board)
+    else:
+        # Nếu chỉ là thành viên: Chỉ thấy task được giao cho mình
+        tasks = Task.objects.filter(board=board, assignee=request.user.username)
 
     return render(request, 'tasks/task_list.html', {
         'board': board,
@@ -110,17 +125,31 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
 
     def get_queryset(self):
+        user = self.request.user
         board_id = self.request.query_params.get('board')
-        if board_id:
-            return Task.objects.filter(board__id=board_id, board__owner=self.request.user)
-        # Nếu không có board_id, trả về tất cả task của user này (phòng hờ)
-        return Task.objects.filter(board__owner=self.request.user)
 
-    # Để khi lưu Task mới, nó biết gán vào Board nào
+        # Logic gộp: Thấy task nếu là chủ sở hữu board HOẶC là người được giao task
+        # Cách này an toàn tuyệt đối với ID dạng số vì Django tự thực hiện phép JOIN SQL
+        queryset = Task.objects.filter(
+            Q(board__owner=user) | 
+            Q(board__members=user, assignee=user.username)
+        ).distinct()
+
+        # Nếu đang ở trong một Board cụ thể (khi load danh sách ở Frontend)
+        if board_id:
+            queryset = queryset.filter(board_id=board_id)
+
+        return queryset
+
     def perform_create(self, serializer):
-        # Lấy board_id từ dữ liệu POST gửi lên
         board_id = self.request.data.get('board')
-        board = get_object_or_404(Board, id=board_id, owner=self.request.user)
+        
+        # Tạo QuerySet và dùng distinct để tránh lỗi MultipleObjectsReturned
+        board_qs = Board.objects.filter(id=board_id).filter(
+            Q(owner=self.request.user) | Q(members=self.request.user)
+        ).distinct()
+        
+        board = get_object_or_404(board_qs)
         serializer.save(board=board)
 
-    
+
