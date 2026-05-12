@@ -706,3 +706,68 @@ a.sidebar__item.active::before {
 #donutLegend::-webkit-scrollbar-thumb:hover {
     background: var(--accent);
 }
+
+/* Container chính của Card */
+.chart-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Thân card - Nơi chứa đồ thị và legend */
+.chart-card__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Căn giữa tất cả các phần tử con theo chiều ngang */
+    padding: 20px;
+    width: 100%;
+}
+
+/* Wrapper của hình tròn */
+.donut-wrapper {
+    position: relative;
+    width: 260px; /* Có thể chỉnh nhỏ lại một chút để cân đối với Card */
+    height: 260px;
+    margin: 0 auto 24px auto; /* Căn giữa và tạo khoảng cách với legend */
+}
+
+/* Con số và nhãn ở giữa tâm */
+.donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Đưa tâm của khối chữ vào đúng tâm hình tròn */
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none; /* Tránh cản trở việc di chuột vào chart */
+    width: 100%;
+}
+
+/* Tinh chỉnh con số cho phông chữ mới */
+.donut-center__num {
+    font-family: var(--font-display); /* Phông chữ đậm bạn vừa đổi */
+    font-size: 3.2rem;
+    font-weight: 900;
+    line-height: 0.9; /* Giảm line-height để số không bị bay lên cao */
+    color: var(--text);
+}
+
+.donut-center__label {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Căn giữa phần Legend */
+.donut-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}

@@ -7,16 +7,13 @@
     <title>Dashboard — Taskly</title>
 
     <!-- Reuse shared layout -->
-    <link rel="stylesheet" href="{% static 'charts/css/dashboard.css' %}?v=3333" />
+    <link rel="stylesheet" href="{% static 'charts/css/dashboard.css' %}?v=5555" />
     <!-- Dashboard-specific styles -->
-    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}?v=3333" />
+    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}?v=5555" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <!-- Phosphor Icons -->
     <script
@@ -79,13 +76,10 @@
           Boards
         </a>
         <div class="user-menu" id="userMenuWrap">
-          <button
-            class="user-avatar"
-            id="userAvatarBtn"
-            aria-label="Menu người dùng"
-            aria-expanded="false"
-          >
-            <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
+          <button class="user-avatar" id="userAvatarBtn" aria-label="Menu người dùng" aria-expanded="false">
+              <img id="headerAvatarImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" src="" alt="Avatar">
+              
+              <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
@@ -106,13 +100,13 @@
             >
               <i class="ph-bold ph-user-circle"></i> Hồ sơ
             </a>
-            <button class="ud-item" role="menuitem">
+            {% comment %} <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-gear"></i> Cài đặt
             </button>
             <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-question"></i> Trợ giúp
             </button>
-            <hr class="ud-divider" />
+            <hr class="ud-divider" /> {% endcomment %}
             <button
               class="ud-item ud-item--danger"
               id="btnLogout"
@@ -393,14 +387,18 @@
                 <p class="chart-card__sub">Theo danh mục</p>
               </div>
             </div>
-            <div class="donut-wrapper">
-              <canvas id="categoryChart"></canvas>
-              <div class="donut-center" id="donutCenter">
-                <span class="donut-center__num" id="donutTotal">0</span>
-                <span class="donut-center__label">Tổng tasks</span>
+
+            <div class="chart-card__body">
+              <div class="donut-wrapper">
+                <canvas id="categoryChart"></canvas>
+                <div class="donut-center" id="donutCenter">
+                  <span class="donut-center__num" id="donutTotal">0</span>
+                  <span class="donut-center__label">Tổng tasks</span>
+                </div>
               </div>
+              
+              <div class="donut-legend" id="donutLegend"></div>
             </div>
-            <div class="donut-legend" id="donutLegend"></div>
           </div>
 
           <!-- Mini calendar -->
@@ -476,6 +474,6 @@
       };
     </script>
 
-    <script src="{% static 'charts/js/dashboard.js' %}?v=3333"></script>
+    <script src="{% static 'charts/js/dashboard.js' %}?v=5555"></script>
   </body>
 </html>

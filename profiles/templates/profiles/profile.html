@@ -117,13 +117,13 @@
             >
               <i class="ph-bold ph-user-circle"></i> Hồ sơ
             </a>
-            <button class="ud-item" role="menuitem">
+            {% comment %} <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-gear"></i> Cài đặt
             </button>
             <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-question"></i> Trợ giúp
             </button>
-            <hr class="ud-divider" />
+            <hr class="ud-divider" /> {% endcomment %}
             <button
               class="ud-item ud-item--danger"
               id="btnLogout"
@@ -436,21 +436,6 @@
 
                 <form id="profileForm" novalidate>
                   {% csrf_token %}
-                  <!-------------------------------- Avatar URL fallback -------------------------------------------------------->
-                  <!-- <div class="pfield">
-                    <label class="pfield__label" for="fAvatarUrl">
-                      <i class="ph-bold ph-link"></i>
-                      URL ảnh đại diện
-                      <span class="optional">(hoặc upload ở bên trái)</span>
-                    </label>
-                    <input
-                      type="url"
-                      id="fAvatarUrl"
-                      class="pfield__input"
-                      placeholder="https://example.com/avatar.jpg"
-                    />
-                  </div> -->
-                  <!-- -------------------------------------------------------------------------------------------------- -->
                   <!-- Name -->
                   <div class="pfield" id="pfieldName">
                     <label class="pfield__label" for="fName">

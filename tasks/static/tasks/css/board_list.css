@@ -35,7 +35,8 @@
   --sidebar-w: 230px;
   --sidebar-collapsed-w: 60px;
 
-  --font-display: "Syne", sans-serif;
+  /* --font-display: "Syne", sans-serif; */
+  --font-display: "Inter", sans-serif;
   --font-body: "Outfit", sans-serif;
 
   --r-sm: 8px;

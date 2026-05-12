@@ -338,18 +338,58 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   localStorage.setItem(LS.THEME, next);
 });
 
-(function loadUser() {
-  const username = localStorage.getItem(LS.USERNAME) || "user";
-  const initials = username.substring(0, 2).toUpperCase();
-  document.getElementById("userInitials").textContent = initials;
-  document.getElementById("udName").textContent = username;
-  document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
-})();
+// (function loadUser() {
+//   const username = localStorage.getItem(LS.USERNAME) || "user";
+//   const initials = username.substring(0, 2).toUpperCase();
+//   document.getElementById("userInitials").textContent = initials;
+//   document.getElementById("udName").textContent = username;
+//   document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
+// })();
 
 document.getElementById("btnLogout").addEventListener("click", () => {
   logout("Đã đăng xuất thành công.");
 });
 
+/* ════════════════════════════════════════════════════
+   Khởi tạo thông tin Header từ Profile API (Sửa lỗi)
+   ════════════════════════════════════════════════════ */
+async function initHeaderProfile() {
+  try {
+    // 1. Đường dẫn phải khớp với urls.py: /profile/api/me/
+    const res = await fetch("/profile/api/me/"); 
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    const profile = data.profile; // Lấy object profile từ response
+
+    // 2. Cập nhật Text (Tên và Email)
+    const udName = document.getElementById("udName");
+    const udEmail = document.getElementById("udEmail");
+    
+    const displayName = profile.username || "Người dùng"; 
+    const displayEmail = profile.email || "Chưa có email";
+
+    // 3. Cập nhật Avatar (Ảnh hoặc Chữ cái đầu)
+    const headerImg = document.getElementById("headerAvatarImg");
+    const initials = document.getElementById("userInitials");
+
+    if (profile.avatar_url && headerImg && initials) {
+      headerImg.src = profile.avatar_url;
+      headerImg.style.display = "block";
+      initials.style.display = "none";
+    } else if (initials) {
+      headerImg.style.display = "none";
+      initials.style.display = "block";
+      const nameForInit = profile.full_name || profile.name || "User";
+      initials.textContent = nameForInit.substring(0, 2).toUpperCase();
+    }
+  } catch (err) {
+    console.error("Lỗi cập nhật header:", err);
+  }
+}
+
+// Gọi hàm ngay khi load trang
+document.addEventListener("DOMContentLoaded", initHeaderProfile);
 /* ════════════════════════════════════════════════════
    F. SIDEBAR & HEADER
    ════════════════════════════════════════════════════ */
@@ -1210,6 +1250,8 @@ skeletonStyle.textContent = `
 document.head.appendChild(skeletonStyle);
 
 fetchAndRender().then(() => {
+  initHeaderProfile();
+
   if (!sessionStorage.getItem("taskly-greeted")) {
     sessionStorage.setItem("taskly-greeted", "1");
     // Lấy tạm username, sau này có thể truyền thẳng từ Django Template xuống

@@ -5,14 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Taskly — Quản lý công việc thông minh</title>
-    <link rel="stylesheet" href="{% static 'tasks/css/home.css' %}" />
+    <link rel="stylesheet" href="{% static 'tasks/css/home.css' %}"?v=3333 />
     <!-- Google Fonts: Syne (display) + Outfit (body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Phosphor Icons -->
     <script
       src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
@@ -39,10 +36,10 @@
 
         <!-- Desktop menu -->
         <ul class="nav__menu" id="navMenu" role="list">
-          <li><a href="#hero" class="nav__link active">Home</a></li>
-          <li><a href="#features" class="nav__link">Features</a></li>
-          <li><a href="#pricing" class="nav__link">Pricing</a></li>
-          <li><a href="#contact" class="nav__link">Contact</a></li>
+          <li><a href="#hero" class="nav__link active">Trang chủ</a></li>
+          <li><a href="#features" class="nav__link">Tính năng</a></li>
+          {% comment %} <li><a href="#pricing" class="nav__link">Pricing</a></li> {% endcomment %}
+          <li><a href="#contact" class="nav__link">Liên hệ</a></li>
         </ul>
 
         <!-- Actions -->
@@ -404,7 +401,7 @@
       </section>
 
       <!-- ═══════════════════════════════════════ PRICING ═══ -->
-      <section id="pricing" class="pricing">
+      {% comment %} <section id="pricing" class="pricing">
         <div class="container">
           <div class="section-header reveal">
             <span class="eyebrow">Bảng giá</span>
@@ -486,10 +483,10 @@
             </article>
           </div>
         </div>
-      </section>
+      </section> {% endcomment %}
 
       <!-- ═══════════════════════════════════════ TESTIMONIALS ═══ -->
-      <section class="testimonials">
+      {% comment %} <section class="testimonials">
         <div class="container">
           <div class="section-header reveal">
             <span class="eyebrow">Đánh giá</span>
@@ -546,7 +543,7 @@
             </article>
           </div>
         </div>
-      </section>
+      </section> {% endcomment %}
 
       <!-- ═══════════════════════════════════════ CTA ═══ -->
       <section class="cta" id="cta">
@@ -705,6 +702,6 @@
     <div id="toast" class="toast" role="alert" aria-live="polite"></div>
     <a class="btn btn-success" href="{% url 'board_list' %}">Danh sách</a>
 
-    <script src="{% static 'tasks/js/home.js' %}"></script>
+    <script src="{% static 'tasks/js/home.js' %}"?v=3333></script>
   </body>
 </html>
