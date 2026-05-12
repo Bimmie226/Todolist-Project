@@ -56,6 +56,21 @@ function getColorEmoji(hex) {
     };
     return colorMap[cleanHex] || '❌';
 }
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 /* ════════════════════════════════════════════════════
    B. THEME & SHARED UI
    ════════════════════════════════════════════════════ */
@@ -180,6 +195,93 @@ const revealObs = new IntersectionObserver(
   { threshold: 0.1 },
 );
 document.querySelectorAll(".reveal").forEach((el) => revealObs.observe(el));
+
+/* ════════════════════════════════════════════════════
+   CALL AI
+   ════════════════════════════════════════════════════ */
+async function askAI() {
+    const aiBtn = document.getElementById('askAiBtn');
+    const aiContent = document.getElementById('aiAdviceContent');
+    const aiBox = document.getElementById('aiAdviceBox');
+
+    // Hiệu ứng Loading
+    aiBtn.classList.add('loading');
+    aiBtn.disabled = true;
+    aiContent.innerHTML = '<span class="ai-typing">AI đang phân tích dữ liệu...</span>';
+    aiBox.classList.add('show');
+
+    try {
+        const response = await fetch('/api/ai-advice/');
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // Hiển thị lời khuyên với hiệu ứng mượt mà
+            aiContent.textContent = data.advice;
+        } else {
+            aiContent.textContent = "Hệ thống AI đang bận, bạn thử lại sau nhé!";
+        }
+    } catch (error) {
+        aiContent.textContent = "Không thể kết nối với trí tuệ nhân tạo.";
+    } finally {
+        aiBtn.classList.remove('loading');
+        aiBtn.disabled = false;
+    }
+}
+
+async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const chatMessages = document.getElementById('chatMessages');
+
+    // 1. Hiển thị tin nhắn người dùng
+    appendMessage('user', message);
+    input.value = '';
+
+    // 2. Hiển thị trạng thái AI đang gõ
+    const loadingId = 'loading-' + Date.now();
+    appendMessage('ai', 'AI đang suy nghĩ...', loadingId);
+
+    try {
+        const response = await fetch('/api/ai-advice/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Đừng quên CSRF Token của Django
+            },
+            body: JSON.stringify({ message: message })
+        });
+
+        const data = await response.json();
+        
+        // Xóa dòng loading và thay bằng câu trả lời thật
+        document.getElementById(loadingId).remove();
+        if (data.status === 'success') {
+            appendMessage('ai', data.reply);
+        } else {
+            appendMessage('ai', "Xin lỗi, tôi gặp chút trục trặc khi kết nối.");
+        }
+    } catch (error) {
+        document.getElementById(loadingId).remove();
+        appendMessage('ai', "Lỗi kết nối server.");
+    }
+}
+
+function appendMessage(sender, text, id = null) {
+    const chatMessages = document.getElementById('chatMessages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `msg ${sender}-msg`;
+    if (id) msgDiv.id = id;
+    msgDiv.textContent = text;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Cuộn xuống cuối
+}
+
+// Lắng nghe phím Enter
+document.getElementById('userInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
 
 /* ════════════════════════════════════════════════════
    Khởi tạo thông tin Header từ Profile API (Sửa lỗi)

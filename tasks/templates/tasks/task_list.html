@@ -8,12 +8,12 @@
     <!-- Reuse shared layout styles from board_list -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=1111"
+      href="{% static 'tasks/css/board_list.css' %}?v=5555"
     />
     <!-- Task-specific styles (extend, never override layout) -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/task_list.css' %}?v=2222"
+      href="{% static 'tasks/css/task_list.css' %}?v=5555"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -71,10 +71,11 @@
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
         </button> {% endcomment %}
+        {% if is_owner %}
         <button class="btn btn--primary" id="btnCreateTask">
-          <i class="ph-bold ph-plus"></i>
-          Tạo Task
+            <i class="ph-bold ph-plus"></i> Tạo Task
         </button>
+        {% endif %}
         <div class="user-menu" id="userMenuWrap">
           <button class="user-avatar" id="userAvatarBtn" aria-label="Menu người dùng" aria-expanded="false">
               <img id="headerAvatarImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" src="" alt="Avatar">
@@ -405,9 +406,11 @@
           <p class="empty-state__desc" id="emptyDesc">
             Bắt đầu bằng cách tạo task đầu tiên cho board này.
           </p>
+          {% if is_owner %}
           <button class="btn btn--primary" id="emptyCreateBtn">
-            <i class="ph-bold ph-plus"></i> Tạo task đầu tiên
+              <i class="ph-bold ph-plus"></i> Tạo task đầu tiên
           </button>
+          {% endif %}
           <div class="empty-shortcuts">
             <kbd>Ctrl</kbd> + <kbd>N</kbd> để tạo nhanh
           </div>
@@ -417,9 +420,11 @@
     <!-- /.app-layout -->
 
     <!-- FAB (mobile) -->
+    {% if is_owner %}
     <button class="fab" id="fab" aria-label="Tạo task mới">
-      <i class="ph-bold ph-plus"></i>
+        <i class="ph-bold ph-plus"></i>
     </button>
+    {% endif %}
 
     <!-- ══════════════════════════════════════════════════════
      MODAL — Create / Edit Task
@@ -599,6 +604,6 @@
       const DJANGO_BOARD_DESC = "{{ board.desc|escapejs }}";
     </script>
 
-    <script src="{% static 'tasks/js/task_list.js' %}?v=2222"></script>
+    <script src="{% static 'tasks/js/task_list.js' %}?v=5555"></script>
   </body>
 </html>

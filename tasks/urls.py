@@ -16,4 +16,5 @@ urlpatterns = [
 
     # 2. SAU ĐÓ MỚI GỌI ROUTER Ở ĐÂY
     path('api/', include(router.urls)),
+    path('api/ai-advice/', views.get_ai_dashboard_advice, name='ai_advice'),
 ]

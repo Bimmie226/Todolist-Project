@@ -175,13 +175,20 @@
               <i class="ph-bold ph-user-circle"></i>
               <span>Hồ sơ</span>
             </a>
-            <button
-              class="sidebar__item"
-              onclick="showToast('Tính năng đang phát triển.', 'info')"
-            >
-              <i class="ph-bold ph-gear"></i>
-              <span>Cài đặt</span>
-            </button>
+            <div class="ai-chat-widget">
+                <div id="aiChatBox" class="chat-container">
+                    <div class="chat-header">
+                        <i class="ph-fill ph-sparkle"></i> Taskly AI Assistant
+                    </div>
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="msg ai-msg">Chào bạn! Tôi thấy bạn có một vài công việc cần xử lý. Tôi có thể giúp gì cho bạn?</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="userInput" placeholder="Hỏi AI về lịch trình của bạn...">
+                        <button onclick="sendMessage()" id="sendBtn"><i class="ph-bold ph-paper-plane-right"></i></button>
+                    </div>
+                </div>
+            </div>
           </nav>
 
           <!-- Sidebar footer: overall productivity -->
@@ -444,10 +451,6 @@
               <i class="ph-bold ph-lightbulb"></i>
               Performance Insights
             </h3>
-            <button class="btn btn--ghost btn--sm" id="btnRefreshInsights">
-              <i class="ph-bold ph-arrows-clockwise"></i>
-              Làm mới
-            </button>
           </div>
           <div class="insights-grid" id="insightsGrid">
             <!-- Injected by JS -->

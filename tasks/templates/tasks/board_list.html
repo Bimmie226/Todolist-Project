@@ -7,7 +7,7 @@
     <title>Boards — Taskly</title>
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=1111"
+      href="{% static 'tasks/css/board_list.css' %}?v=3333"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -166,13 +166,13 @@
               <i class="ph-bold ph-chart-bar"></i>
               <span>Dashboard</span>
             </a>
-            <button
+            {% comment %} <button
               class="sidebar__item"
               onclick="showToast('Tính năng đang phát triển.', 'info')"
             >
               <i class="ph-bold ph-clock-countdown"></i>
               <span>Gần deadline</span>
-            </button>
+            </button> {% endcomment %}
           </nav>
 
           <!-- Sidebar footer -->
@@ -580,11 +580,13 @@
      BOARD CONTEXT MENU
      ════════════════════════════════════════════════════════ -->
     <ul class="context-menu" id="contextMenu" role="menu">
+      {% if is_owner %}
       <li>
         <button class="ctx-item" id="ctxEdit">
           <i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa
         </button>
       </li>
+      {% endif %}
       <li>
         <button class="ctx-item" id="ctxFav">
           <i class="ph-bold ph-star"></i> Yêu thích
@@ -601,13 +603,15 @@
         </button>
       </li>
       <li class="ctx-sep"></li>
+      {% if is_owner %}
       <li>
         <button class="ctx-item ctx-item--danger" id="ctxDelete">
           <i class="ph-bold ph-trash"></i> Xóa Board
         </button>
       </li>
+      {% endif %}
     </ul>
 
-    <script src="{% static 'tasks/js/board_list.js' %}?v=1111"></script>
+    <script src="{% static 'tasks/js/board_list.js' %}?v=3333"></script>
   </body>
 </html>

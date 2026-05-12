@@ -916,6 +916,8 @@ function renderMembers() {
 const contextMenu = document.getElementById("contextMenu");
 let ctxBoardId = null;
 
+// board_list.js
+
 function openContextMenu(e, boardId) {
   closeContextMenu();
   ctxBoardId = boardId;
@@ -923,14 +925,24 @@ function openContextMenu(e, boardId) {
   const board = ui.boards.find((b) => b.id === boardId);
   if (!board) return;
 
+  // KIỂM TRA QUYỀN
+  const isOwner = board.is_owner; // Biến này lấy từ BoardSerializer
+
+  // 1. Ẩn/Hiện các mục menu dựa trên quyền (Ẩn cả thẻ li để menu gọn hơn)
+  const editBtn = document.getElementById("ctxEdit");
+  const deleteBtn = document.getElementById("ctxDelete");
+  const archiveBtn = document.getElementById("ctxArchive");
+
+  if (editBtn) editBtn.parentElement.style.display = isOwner ? "block" : "none";
+  if (deleteBtn) deleteBtn.parentElement.style.display = isOwner ? "block" : "none";
+  if (archiveBtn) archiveBtn.parentElement.style.display = isOwner ? "block" : "none";
+
+  // 2. Cập nhật nội dung các nút còn lại
   document.getElementById("ctxFav").innerHTML = board.is_favorite
     ? '<i class="ph-bold ph-star-fill" style="color:var(--amber)"></i> Bỏ yêu thích'
     : '<i class="ph-bold ph-star"></i> Thêm yêu thích';
 
-  document.getElementById("ctxArchive").innerHTML = board.is_archived
-    ? '<i class="ph-bold ph-archive-tray"></i> Khôi phục'
-    : '<i class="ph-bold ph-archive"></i> Lưu trữ';
-
+  // Hiển thị menu
   const x = Math.min(e.clientX, window.innerWidth - 200);
   const y = Math.min(e.clientY, window.innerHeight - 260);
   contextMenu.style.left = `${x}px`;
@@ -1070,8 +1082,6 @@ function showPreview(board) {
 
 /* ════════════════════════════════════════════════════
    K. DRAG & DROP (client-side reorder)
-   Chú ý: reorder chỉ là visual — không persist thứ tự vào DB
-   (cần thêm endpoint PATCH /boards/{id}/reorder/ nếu muốn)
    ════════════════════════════════════════════════════ */
 let _dragSrcId = null;
 

@@ -9,16 +9,34 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
 from .serializers import BoardSerializer, TaskSerializer, CategorySerializer
 from rest_framework import viewsets, permissions
+import os
+import json
+import google.generativeai as genai
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import Task, Board
 
 # Trang chủ
 def home(request):
     return render(request, 'tasks/home.html')
 
 @login_required
-# Hiển thị danh sách bảng công việc
 def board_list(request):
-    boards = Board.objects.filter(owner=request.user)
-    return render(request, 'tasks/board_list.html', {'boards': boards})
+    boards = Board.objects.filter(
+        Q(owner=request.user) | Q(members=request.user)
+    ).distinct()
+    
+    return render(request, 'tasks/board_list.html', {
+        'boards': boards,
+        'is_owner': True # Trang danh sách board ai cũng có quyền 'tạo' board mới của riêng họ
+    })
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return obj.owner == request.user
 
 # API View xử lý dữ liệu cho Javascript
 class BoardViewSet(viewsets.ModelViewSet):
@@ -27,12 +45,10 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # LẤY BOARD MÀ MÌNH LÀ CHỦ HOẶC LÀ THÀNH VIÊN
         queryset = Board.objects.filter(
             Q(owner=user) | Q(members=user)
         ).distinct() # Dùng distinct() để tránh bị duplicate data
         
-        # Xử lý các filter từ Javascript gửi lên (search, type, favorite, archived)
         search = self.request.query_params.get('search')
         b_type = self.request.query_params.get('type')
         favorite = self.request.query_params.get('favorite')
@@ -78,10 +94,15 @@ class BoardViewSet(viewsets.ModelViewSet):
         board.save()
         return Response({'message': 'Cập nhật yêu thích thành công'})
 
-    # API tùy chỉnh cho toggle archive (/api/boards/{id}/toggle_archive/)
+    # API tùy chỉnh cho toggle archive (/api/boards/{id}/toggle_archive/)    
     @action(detail=True, methods=['patch'])
     def toggle_archive(self, request, pk=None):
         board = self.get_object()
+        # Chặn thành viên lưu trữ bảng chung của người khác
+        if board.owner != request.user:
+            return Response({"detail": "Chỉ chủ sở hữu mới có thể lưu trữ bảng."}, 
+                            status=status.HTTP_403_FORBIDDEN)
+        
         board.is_archived = not board.is_archived
         board.save()
         return Response({'message': 'Cập nhật lưu trữ thành công'})
@@ -97,28 +118,38 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Category.objects.all()
     
 @login_required
-# Hiển thị danh sách công việc theo bảng
 def task_list(request, board_id):
-    # Sử dụng filter + distinct trước khi gọi get_object_or_404
-    # Điều này đảm bảo dù có JOIN Many-to-Many thì cũng chỉ trả về 1 Board duy nhất
-    board_queryset = Board.objects.filter(id=board_id).filter(
-        Q(owner=request.user) | Q(members=request.user)
-    ).distinct()
+    # 1. Lấy Board và kiểm tra quyền truy cập (Owner hoặc Member)
+    board = get_object_or_404(
+        Board.objects.prefetch_related('members'), 
+        id=board_id
+    )
+    
+    # Kiểm tra quyền truy cập thủ công để chính xác hơn
+    if board.owner != request.user and request.user not in board.members.all():
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied # Trả về lỗi 403 nếu không có quyền
 
-    board = get_object_or_404(board_queryset)
+    is_owner = (board.owner == request.user)
 
-    # Phân quyền hiển thị Task
-    if board.owner_id == request.user.id:
-        # Nếu là chủ Board: Thấy TẤT CẢ task
+    # 2. Logic hiển thị Task
+    if is_owner:
         tasks = Task.objects.filter(board=board)
     else:
-        # Nếu chỉ là thành viên: Chỉ thấy task được giao cho mình
-        tasks = Task.objects.filter(board=board, assignee=request.user.username)
+        tasks = Task.objects.filter(board=board)
 
     return render(request, 'tasks/task_list.html', {
         'board': board,
-        'tasks': tasks
+        'tasks': tasks,
+        'is_owner': is_owner
     })
+    
+class IsBoardOwnerForTask(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        return obj.board.owner == request.user
 
 class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -128,14 +159,11 @@ class TaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         board_id = self.request.query_params.get('board')
 
-        # Logic gộp: Thấy task nếu là chủ sở hữu board HOẶC là người được giao task
-        # Cách này an toàn tuyệt đối với ID dạng số vì Django tự thực hiện phép JOIN SQL
         queryset = Task.objects.filter(
             Q(board__owner=user) | 
             Q(board__members=user, assignee=user.username)
         ).distinct()
 
-        # Nếu đang ở trong một Board cụ thể (khi load danh sách ở Frontend)
         if board_id:
             queryset = queryset.filter(board_id=board_id)
 
@@ -143,13 +171,54 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         board_id = self.request.data.get('board')
-        
-        # Tạo QuerySet và dùng distinct để tránh lỗi MultipleObjectsReturned
-        board_qs = Board.objects.filter(id=board_id).filter(
-            Q(owner=self.request.user) | Q(members=self.request.user)
-        ).distinct()
-        
-        board = get_object_or_404(board_qs)
+        board = get_object_or_404(Board, id=board_id, owner=self.request.user)
+
         serializer.save(board=board)
 
+API_KEY = os.getenv("GEMINI_API_KEY")
+# API_KEY = "AIzaSyDgnE-Zh3W3gF9rXEtbsEkYEmY21hnd6m8"
+genai.configure(api_key=API_KEY)
+
+def get_ai_dashboard_advice(request):
+    if request.method == "POST":
+        try:
+            # 1. Lấy dữ liệu từ Request
+            data = json.loads(request.body)
+            user_message = data.get("message", "")
+
+            # 2. Ngữ cảnh dữ liệu (Sửa lỗi board__owner)
+            todo_count = Task.objects.filter(board__owner=request.user, status__name__icontains='todo').count()
+            done_count = Task.objects.filter(board__owner=request.user, status__name__icontains='done').count()
+            overdue_tasks = Task.objects.filter(
+                board__owner=request.user, 
+                status__name__icontains='todo', 
+                due_date__lt=timezone.now()
+            ).count()
+
+            # 3. CHỌN MÔ HÌNH AN TOÀN
+            available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+
+            selected_model = 'models/gemini-1.5-flash'
+            if selected_model not in available_models:
+                selected_model = available_models[0] if available_models else 'gemini-pro'
+            
+            print(f"--- Đang dùng mô hình: {selected_model} ---")
+
+            # 4. Gửi Prompt tới AI
+            model = genai.GenerativeModel(selected_model)
+            prompt = f"""
+            Bạn là Taskly AI. Ngữ cảnh: {todo_count} việc cần làm, {done_count} xong, {overdue_tasks} QUÁ HẠN.
+            Người dùng hỏi: "{user_message}"
+            Hãy trả lời ngắn gọn (dưới 30 từ) bằng Tiếng Việt.
+            """
+
+            response = model.generate_content(prompt)
+            return JsonResponse({'status': 'success', 'reply': response.text})
+
+        except Exception as e:
+            print(f"LỖI CHAT AI: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            
+    return JsonResponse({'status': 'error', 'message': 'Chỉ chấp nhận POST'}, status=400)
+    
 

@@ -468,28 +468,61 @@ document.querySelectorAll(".sidebar__item[data-view]").forEach((btn) => {
 /**
  * Hàm phân quyền: Ẩn/Hiện nút dựa trên vai trò Owner/Member
  */
+// task_list.js
+
 function applyPermissions(boardData) {
-  const currentUser = window.TasklyConfig.username;
-  const isOwner = boardData.owner === currentUser;
+  const isOwner = boardData.is_owner; 
+  window.isOwner = isOwner; // Lưu vào biến toàn cục để dùng cho logic phím tắt và kéo thả
 
-  console.log(`[Auth] User: ${currentUser} | Owner: ${boardData.owner} | isOwner: ${isOwner}`);
+  console.log(`[Quyền hạn] Chủ sở hữu: ${isOwner}`);
 
-  // 1. Nút Thêm Task (Dùng flex để giữ layout icon + text)
-  const addTaskBtn = document.getElementById("addNewTaskBtn");
-  if (addTaskBtn) {
-    addTaskBtn.style.display = isOwner ? "flex" : "none";
-  }
+  // 1. Ẩn các nút tạo task chính
+  const elementsToHide = [
+    "btnCreateTask", 
+    "fab", 
+    "emptyCreateBtn"
+  ];
 
-  // 2. Nút Cài đặt Board
-  const boardSettingsBtn = document.getElementById("boardSettingsBtn");
-  if (boardSettingsBtn) {
-    boardSettingsBtn.style.display = isOwner ? "block" : "none";
-  }
+  elementsToHide.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isOwner ? "flex" : "none";
+  });
 
-  // 3. Nút Thêm thành viên
-  const addMemberBtn = document.getElementById("addMemberBtn");
-  if (addMemberBtn) {
-    addMemberBtn.style.display = isOwner ? "block" : "none";
+  // 2. Ẩn các mục trong Menu chuột phải (Context Menu)
+  // Lưu ý: Ẩn cả thẻ <li> (parentElement) để menu không bị hở khoảng trống
+  const ctxItems = ["ctxEdit", "ctxDelete", "ctxDuplicate"];
+  ctxItems.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.parentElement.style.display = isOwner ? "block" : "none";
+    }
+  });
+
+  // 3. Ẩn nút "Thêm task" trong các cột Kanban
+  document.querySelectorAll(".kanban-add-btn").forEach(btn => {
+    btn.style.display = isOwner ? "flex" : "none";
+  });
+
+  // 4. GIẢI PHÁP TRIỆT ĐỂ: Dùng CSS để ẩn các icon trực tiếp trên Task Card
+  // Nếu không phải chủ sở hữu, ta sẽ tiêm một đoạn CSS để ẩn hoàn toàn các nút hành động
+  let permissionStyle = document.getElementById("permission-style");
+  if (!isOwner) {
+    if (!permissionStyle) {
+      permissionStyle = document.createElement("style");
+      permissionStyle.id = "permission-style";
+      permissionStyle.innerHTML = `
+        /* Ẩn cụm icon Chỉnh sửa & Xóa trên thẻ task */
+        .task-card__actions { 
+            display: none !important; 
+        }
+        /* Ẩn nút dấu 3 chấm trên thẻ task (nếu bạn muốn thành viên chỉ xem) */
+        /* .task-card__menu { display: none !important; } */
+      `;
+      document.head.appendChild(permissionStyle);
+    }
+  } else {
+    // Nếu là chủ sở hữu (ví dụ khi chuyển board), hãy xóa style này đi
+    if (permissionStyle) permissionStyle.remove();
   }
 }
 
