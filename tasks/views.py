@@ -176,49 +176,45 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer.save(board=board)
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-# API_KEY = "AIzaSyDgnE-Zh3W3gF9rXEtbsEkYEmY21hnd6m8"
 genai.configure(api_key=API_KEY)
 
+@api_view(['POST'])
 def get_ai_dashboard_advice(request):
-    if request.method == "POST":
-        try:
-            # 1. Lấy dữ liệu từ Request
-            data = json.loads(request.body)
-            user_message = data.get("message", "")
+    try:
+        user_message = request.data.get("message", "")
+        user_tasks = Task.objects.filter(
+            Q(board__owner=request.user) | Q(board__members=request.user)
+        ).distinct()
 
-            # 2. Ngữ cảnh dữ liệu (Sửa lỗi board__owner)
-            todo_count = Task.objects.filter(board__owner=request.user, status__name__icontains='todo').count()
-            done_count = Task.objects.filter(board__owner=request.user, status__name__icontains='done').count()
-            overdue_tasks = Task.objects.filter(
-                board__owner=request.user, 
-                status__name__icontains='todo', 
-                due_date__lt=timezone.now()
-            ).count()
+        todo = user_tasks.filter(status__name__icontains='todo').count()
+        done = user_tasks.filter(status__name__icontains='done').count()
+        overdue = user_tasks.filter(
+            status__name__icontains='todo', 
+            due_date__lt=timezone.now()
+        ).count()
+        selected_model = 'gemini-flash-latest' 
+        
+        api_key = os.getenv("GEMINI_API_KEY")
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(selected_model)
 
-            # 3. CHỌN MÔ HÌNH AN TOÀN
-            available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        # 3. Gửi Prompt
+        prompt = f"Bạn là Taskly AI. Ngữ cảnh: {todo} việc cần làm, {done} đã xong, {overdue} quá hạn. Trả lời cực ngắn dưới 30 từ: {user_message}"
+        
+        response = model.generate_content(prompt)
+        return JsonResponse({'status': 'success', 'reply': response.text})
 
-            selected_model = 'models/gemini-1.5-flash'
-            if selected_model not in available_models:
-                selected_model = available_models[0] if available_models else 'gemini-pro'
+    except Exception as e:
+        error_str = str(e)
+        print(f"LỖI HỆ THỐNG AI: {error_str}")
+        
+        # Mặc định trả về 200 để tránh lỗi 500 cho Server
+        reply = "AI đang khởi động lại, bạn đợi vài giây rồi thử lại nhé!"
+        if "404" in error_str:
+            reply = "Mô hình AI đang được cập nhật, vui lòng thử lại sau giây lát."
+        elif "429" in error_str:
+            reply = "Bạn đã hết lượt hỏi AI trong hôm nay rồi!"
             
-            print(f"--- Đang dùng mô hình: {selected_model} ---")
-
-            # 4. Gửi Prompt tới AI
-            model = genai.GenerativeModel(selected_model)
-            prompt = f"""
-            Bạn là Taskly AI. Ngữ cảnh: {todo_count} việc cần làm, {done_count} xong, {overdue_tasks} QUÁ HẠN.
-            Người dùng hỏi: "{user_message}"
-            Hãy trả lời ngắn gọn (dưới 30 từ) bằng Tiếng Việt.
-            """
-
-            response = model.generate_content(prompt)
-            return JsonResponse({'status': 'success', 'reply': response.text})
-
-        except Exception as e:
-            print(f"LỖI CHAT AI: {str(e)}")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-            
-    return JsonResponse({'status': 'error', 'message': 'Chỉ chấp nhận POST'}, status=400)
+        return JsonResponse({'status': 'error', 'reply': reply}, status=200)
     
 
