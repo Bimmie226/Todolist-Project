@@ -38,11 +38,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 1. Bắt buộc phải có Site framework của Django
+    'django.contrib.sites', 
+    # 2. Các app của Allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # 3. Provider Google (có thể thêm facebook, github... vào đây sau này)
+    'allauth.socialaccount.providers.google',
 
     'rest_framework',
     'tasks',
     'accounts',
-    'profiles'
+    'profiles',
+    'charts'
 ]
 
 MIDDLEWARE = [
@@ -53,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'todolist_project.urls'
@@ -75,6 +85,14 @@ TEMPLATES = [
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/boards/'
+LOGOUT_REDIRECT_URL = 'home'
+
+# 3. Cấu hình cho Allauth
+SITE_ID = 1  # Đảm bảo bạn đã thêm 'django.contrib.sites' vào INSTALLED_APPS
+
+# 4. Tùy chỉnh hành vi (Tùy chọn)
+SOCIALACCOUNT_LOGIN_ON_GET = True # Bấm nút là đi luôn, không hiện trang trung gian "Confirm"
+ACCOUNT_LOGOUT_ON_GET = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -143,13 +161,12 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
 EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = 'Taskly Notifications <your_email@gmail.com>'
 
 # Thêm cấu hình phân quyền mặc định cho DRF (ở dưới cùng file settings.py)
 REST_FRAMEWORK = {
@@ -160,4 +177,55 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated', # Chỉ người đã đăng nhập mới gọi được API
     ]
-}   
+} 
+# settings.py
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Tự động đăng ký nếu chưa có
+ACCOUNT_SESSION_REMEMBER = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+# Tự động liên kết tài khoản mạng xã hội với tài khoản email đã tồn tại
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Đường dẫn tới Class Adapter bạn vừa viết (thay 'accounts' bằng tên app của bạn)
+SOCIALACCOUNT_ADAPTER = 'accounts.adapter.MySocialAccountAdapter'
+
+# Các cấu hình bổ trợ để bỏ qua các bước trung gian
+ACCOUNT_AUTHENTICATION_METHOD = 'email' # Hoặc 'username_email'
+ACCOUNT_EMAIL_VERIFICATION = 'none'    # Bỏ qua bước xác thực mail thủ công
+
+# ==========================================
+# CẤU HÌNH DJANGO-ALLAUTH (USERNAME DUY NHẤT)
+# ==========================================
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Cho phép gõ Email hoặc Username vào ô đăng nhập đều chạy được!
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+
+# Email vẫn bắt buộc và không được trùng
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+
+# BẬT LẠI: Bắt buộc phải có Username và KHÔNG được trùng
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_UNIQUE_USERNAME = True
+
+ACCOUNT_EMAIL_VERIFICATION = 'none' 
+LOGOUT_REDIRECT_URL = '/'
+# settings.py
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+    }
+}

@@ -5,13 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Boards — Taskly</title>
-    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}" />
+    <link
+      rel="stylesheet"
+      href="{% static 'tasks/css/board_list.css' %}?v=3333"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script
       src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
       defer
@@ -67,10 +67,10 @@
         </button>
 
         <!-- Notifications -->
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
 
         <!-- Create board (desktop) -->
         <button class="btn btn--primary" id="btnCreateDesktop">
@@ -80,18 +80,15 @@
 
         <!-- User avatar / menu -->
         <div class="user-menu" id="userMenuWrap">
-          <button
-            class="user-avatar"
-            id="userAvatarBtn"
-            aria-label="Menu người dùng"
-            aria-expanded="false"
-          >
-            <span id="userInitials">TN</span>
+          <button class="user-avatar" id="userAvatarBtn" aria-label="Menu người dùng" aria-expanded="false">
+              <img id="headerAvatarImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" src="" alt="Avatar">
+              
+              <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
-              <span class="ud-name" id="udName">Taskly User</span>
-              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+                <p class="ud-name" id="udName">{{ user.username }}</p>
+                <p class="ud-email" id="udEmail">{{ user.email }}</p>
             </div>
             <hr class="ud-divider" />
             <button>
@@ -100,13 +97,13 @@
                 Hồ sơ
               </a>
             </button>
-            <button class="ud-item" role="menuitem">
+            {% comment %} <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-gear"></i> Cài đặt
             </button>
             <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-question"></i> Trợ giúp
             </button>
-            <hr class="ud-divider" />
+            <hr class="ud-divider" /> {% endcomment %}
             <button
               class="ud-item ud-item--danger"
               id="btnLogout"
@@ -165,31 +162,24 @@
             </button>
 
             <p class="sidebar__section-label">Khám phá</p>
-            <button
-              class="sidebar__item"
-              onclick="showToast('Tính năng đang phát triển.', 'info')"
-            >
-              <i class="ph-bold ph-trend-up"></i>
-              <span>Phổ biến</span>
-            </button>
-            <button
+            <a href="{% url 'dashboard_gui' %}" class="sidebar__item">
+              <i class="ph-bold ph-chart-bar"></i>
+              <span>Dashboard</span>
+            </a>
+            {% comment %} <button
               class="sidebar__item"
               onclick="showToast('Tính năng đang phát triển.', 'info')"
             >
               <i class="ph-bold ph-clock-countdown"></i>
               <span>Gần deadline</span>
-            </button>
+            </button> {% endcomment %}
           </nav>
 
           <!-- Sidebar footer -->
           <div class="sidebar__footer">
             <div class="storage-bar">
-              <div class="storage-bar__top">
-                <span>Dung lượng</span>
-                <span class="storage-bar__val">2.4 / 5 GB</span>
-              </div>
               <div class="storage-bar__track">
-                <div class="storage-bar__fill" style="width: 48%"></div>
+                <div class="storage-bar__fill" style="width: 100%"></div>
               </div>
             </div>
           </div>
@@ -499,6 +489,68 @@
               </label>
             </div>
           </div>
+
+          <!-- Thành viên — chỉ hiện khi chọn Nhóm -->
+          <div class="mfield" id="memberSection">
+            <div class="member-section-inner">
+              <label class="mfield__label">
+                <i class="ph-bold ph-users-three"></i>
+                Thêm thành viên
+                <span
+                  id="memberCountBadge"
+                  style="
+                    background: var(--accent);
+                    color: #fff;
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    padding: 1px 8px;
+                    border-radius: 999px;
+                    margin-left: auto;
+                  "
+                  >0</span
+                >
+              </label>
+              <div style="display: flex; gap: 8px; margin-bottom: 6px">
+                <input
+                  type="text"
+                  id="memberInput"
+                  class="mfield__input"
+                  placeholder="Nhập username… (vd: nguyen_van_a)"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="btnAddMember"
+                  style="
+                    width: 40px;
+                    height: 40px;
+                    flex-shrink: 0;
+                    background: var(--accent);
+                    color: #fff;
+                    border: none;
+                    border-radius: var(--r-md);
+                    font-size: 1rem;
+                    cursor: pointer;
+                  "
+                >
+                  <i class="ph-bold ph-plus"></i>
+                </button>
+              </div>
+              <p
+                id="memberInputErr"
+                style="font-size: 0.76rem; color: var(--red); min-height: 16px"
+              ></p>
+              <div
+                id="memberList"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 6px;
+                  margin-top: 4px;
+                "
+              ></div>
+            </div>
+          </div>
         </div>
         <div class="modal__footer">
           <button class="btn btn--ghost" id="modalCancel">Huỷ</button>
@@ -528,11 +580,13 @@
      BOARD CONTEXT MENU
      ════════════════════════════════════════════════════════ -->
     <ul class="context-menu" id="contextMenu" role="menu">
+      {% if is_owner %}
       <li>
         <button class="ctx-item" id="ctxEdit">
-          <i class="ph-bold ph-pencil-simple"></i> Đổi tên
+          <i class="ph-bold ph-pencil-simple"></i> Chỉnh sửa
         </button>
       </li>
+      {% endif %}
       <li>
         <button class="ctx-item" id="ctxFav">
           <i class="ph-bold ph-star"></i> Yêu thích
@@ -549,13 +603,15 @@
         </button>
       </li>
       <li class="ctx-sep"></li>
+      {% if is_owner %}
       <li>
         <button class="ctx-item ctx-item--danger" id="ctxDelete">
           <i class="ph-bold ph-trash"></i> Xóa Board
         </button>
       </li>
+      {% endif %}
     </ul>
 
-    <script src="{% static 'tasks/js/board_list.js' %}?v=999"></script>
+    <script src="{% static 'tasks/js/board_list.js' %}?v=3333"></script>
   </body>
 </html>

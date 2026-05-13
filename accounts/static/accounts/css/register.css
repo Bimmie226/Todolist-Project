@@ -39,7 +39,8 @@
 
   --panel-bg: #0c1a2e; /* deep navy */
 
-  --font-display: "Syne", sans-serif;
+  /* --font-display: "Syne", sans-serif; */
+  --font-display: "Inter", sans-serif;
   --font-body: "Outfit", sans-serif;
 
   --r-sm: 8px;

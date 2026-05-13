@@ -35,7 +35,8 @@
   --sidebar-w: 230px;
   --sidebar-collapsed-w: 60px;
 
-  --font-display: "Syne", sans-serif;
+  /* --font-display: "Syne", sans-serif; */
+  --font-display: "Inter", sans-serif;
   --font-body: "Outfit", sans-serif;
 
   --r-sm: 8px;
@@ -1075,10 +1076,14 @@ kbd {
   box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 480px;
+  max-height: 90vh; /* giới hạn chiều cao modal */
+  display: flex; /* layout dạng flex */
+  flex-direction: column; /* header + body + footer xếp dọc */
   transform: scale(0.94) translateY(16px);
   transition: transform 0.28s var(--ease);
-  overflow: hidden;
+  overflow: hidden; /* giữ border-radius */
 }
+
 .modal-backdrop.open .modal {
   transform: none;
 }
@@ -1113,6 +1118,17 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto; /* scroll phần body */
+  flex: 1; /* chiếm hết không gian còn lại */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.modal__body::-webkit-scrollbar {
+  width: 4px;
+}
+.modal__body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
 }
 
 .mfield {
@@ -1512,4 +1528,153 @@ kbd {
     gap: 10px;
   }
 }
- 
+/* ── Member section ── */
+#memberSection {
+  display: grid;
+  grid-template-rows: 0fr; /* trick không cần overflow:hidden */
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s ease,
+    opacity 0.25s ease;
+}
+#memberSection > .member-section-inner {
+  overflow: hidden; /* chỉ clip trong lúc animate */
+  min-height: 0;
+}
+#memberSection.open {
+  grid-template-rows: 1fr; /* mở rộng tự nhiên */
+  opacity: 1;
+}
+#memberSection.open > .member-section-inner {
+  overflow: visible; /* bỏ clip sau khi mở */
+}
+
+/* Danh sách thành viên — scroll độc lập */
+#memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-right: 2px;
+}
+#memberList::-webkit-scrollbar {
+  width: 4px;
+}
+#memberList::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Member chip */
+.member-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  flex-shrink: 0; /* ← quan trọng: không bị co */
+  animation: chipIn 0.2s ease both;
+}
+.member-chip__av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.member-chip__name {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.member-chip__role {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.member-chip__remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-light);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  transition: all 0.15s;
+}
+.member-chip__remove:hover {
+  background: #fee2e2;
+  color: var(--red);
+}
+
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Danh sách thành viên cuộn được */
+#memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 140px; /* ~4 chip rồi scroll */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-right: 2px;
+}
+#memberList::-webkit-scrollbar {
+  width: 4px;
+}
+#memberList::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Member section mở rộng đủ chỗ */
+#memberSection.open {
+  max-height: 320px;
+}
+
+/* Modal body có thể cuộn khi nội dung dài */
+.modal__body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  flex: 1; /* ← bắt buộc phải có */
+  min-height: 0; /* ← fix flex scroll bug */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.modal__body::-webkit-scrollbar {
+  width: 4px;
+}
+.modal__body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}

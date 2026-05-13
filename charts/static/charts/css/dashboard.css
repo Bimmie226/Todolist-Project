@@ -1,0 +1,936 @@
+/* ═══════════════════════════════════════════════════════════
+   dashboard.css — Taskly Dashboard Analytics Page
+   Extends board_list.css (shared layout, variables, utilities)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── 1. SIDEBAR LINK REUSE ──────────────────────────────── */
+a.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  font-size: 0.88rem;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  transition:
+    background var(--dur),
+    color var(--dur);
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+}
+a.sidebar__item:hover {
+  background: var(--sidebar-hover);
+}
+a.sidebar__item.active {
+  background: var(--sidebar-active);
+  color: #fff;
+  pointer-events: none;
+}
+a.sidebar__item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+.sidebar.collapsed a.sidebar__item > span {
+  opacity: 0;
+  width: 0;
+}
+
+/* ─── 2. PERIOD TABS ─────────────────────────────────────── */
+.period-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+.period-tab {
+  padding: 6px 14px;
+  border-radius: calc(var(--r-md) - 2px);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--dur) var(--ease);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.period-tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.btn--sm {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+/* ─── 3. SCROLL REVEAL ───────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.55s var(--ease),
+    transform 0.55s var(--ease);
+  transition-delay: var(--delay, 0s);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── 4. STAT CARDS ──────────────────────────────────────── */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+  cursor: default;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.stat-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--ic) 12%, transparent);
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  color: var(--ic);
+  flex-shrink: 0;
+}
+.stat-card__label {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.stat-card__num {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.stat-card__trend.up {
+  background: #dcfce7;
+  color: #15803d;
+}
+.stat-card__trend.down {
+  background: #dcfce7;
+  color: #15803d;
+}
+.stat-card__trend.neutral {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.stat-card__trend.bad {
+  background: #fee2e2;
+  color: var(--red);
+}
+[data-theme="dark"] .stat-card__trend.up {
+  background: #14532d;
+  color: #86efac;
+}
+[data-theme="dark"] .stat-card__trend.down {
+  background: #14532d;
+  color: #86efac;
+}
+[data-theme="dark"] .stat-card__trend.bad {
+  background: #4c1212;
+  color: #fca5a5;
+}
+
+/* ─── 5. CHARTS ROW ──────────────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ─── 6. CHART CARD ──────────────────────────────────────── */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  transition: box-shadow 0.2s var(--ease);
+}
+.chart-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.chart-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 10px;
+}
+.chart-card__title {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.chart-card__sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.chart-card__actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.chart-action-btn {
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--dur);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.chart-action-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.chart-action-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 220px;
+}
+
+/* Best day badge */
+.best-day-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--accent-light), #f3e8ff);
+  border-radius: var(--r-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+[data-theme="dark"] .best-day-badge {
+  background: linear-gradient(135deg, #1e2050, #2e1b4e);
+}
+.best-day-badge i {
+  color: var(--amber);
+  font-size: 0.95rem;
+}
+
+/* ─── 7. PROGRESS LIST ───────────────────────────────────── */
+.progress-list {
+    display: block;      /* Đảm bảo khối nhận max-height */
+    max-height: 350px;   /* Hiển thị khoảng 4 mục, vượt quá sẽ cuộn */
+    overflow-y: auto;    /* Bật cuộn dọc */
+    overflow-x: hidden;  /* Tắt cuộn ngang */
+    padding-right: 8px;  /* Tạo khoảng trống để thanh cuộn không đè lên nội dung */
+    margin-top: 10px;
+}
+
+/* Tùy chỉnh thanh cuộn cho đồng bộ với biểu đồ Phân loại Task */
+.progress-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.progress-list::-webkit-scrollbar-track {
+    background: var(--surface-2);
+    border-radius: 10px;
+}
+
+.progress-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+.progress-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+.progress-item {
+    margin-bottom: 20px; /* Khoảng cách giữa các board */
+    width: 100%;
+}
+.progress-item__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.progress-item__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+.progress-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.progress-item__pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: right;
+}
+.progress-bar-wrap {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s var(--ease);
+}
+
+/* ─── 8. DONUT CHART ─────────────────────────────────────── */
+.donut-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 14px;
+}
+.donut-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.donut-center__num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.donut-center__label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+}
+.donut-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.donut-legend-label {
+  flex: 1;
+  color: var(--text-muted);
+}
+.donut-legend-val {
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+/* ─── 9. MINI CALENDAR ───────────────────────────────────── */
+.cal-month-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 8px;
+  color: var(--text);
+  min-width: 80px;
+  text-align: center;
+}
+.mini-calendar {
+  width: 100%;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day-header {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-light);
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: default;
+  position: relative;
+  transition: transform 0.15s;
+}
+.cal-day:hover {
+  transform: scale(1.1);
+}
+.cal-day.empty {
+  color: transparent;
+  pointer-events: none;
+}
+.cal-day.today {
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.cal-day.has-tasks-low {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.cal-day.has-tasks-mid {
+  background: var(--accent);
+  color: #fff;
+}
+.cal-day.has-tasks-high {
+  background: var(--accent-dark);
+  color: #fff;
+}
+.cal-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.cal-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.cal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ─── 10. INSIGHTS SECTION ───────────────────────────────── */
+.insights-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.insights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.insights-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.insights-title i {
+  color: var(--amber);
+  font-size: 1.1rem;
+}
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.insight-card {
+  border-radius: var(--r-md);
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--border);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+  animation: insightIn 0.4s var(--ease) both;
+}
+@keyframes insightIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.insight-card--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.insight-card--success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.insight-card--warning {
+  background: #fefce8;
+  border-color: #fef08a;
+}
+.insight-card--danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+[data-theme="dark"] .insight-card--info {
+  background: #1e3a5f;
+  border-color: #1e40af;
+}
+[data-theme="dark"] .insight-card--success {
+  background: #14532d;
+  border-color: #166534;
+}
+[data-theme="dark"] .insight-card--warning {
+  background: #3b2e05;
+  border-color: #854d0e;
+}
+[data-theme="dark"] .insight-card--danger {
+  background: #4c1212;
+  border-color: #991b1b;
+}
+
+.insight-card__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.insight-card--info .insight-card__icon {
+  color: #3b82f6;
+}
+.insight-card--success .insight-card__icon {
+  color: #22c55e;
+}
+.insight-card--warning .insight-card__icon {
+  color: var(--amber);
+}
+.insight-card--danger .insight-card__icon {
+  color: var(--red);
+}
+
+.insight-card__text {
+}
+.insight-card__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.insight-card__desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ─── 11. RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bottom-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  #calendarCard {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .bottom-row {
+    grid-template-columns: 1fr;
+  }
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  .period-tabs {
+    display: none;
+  }
+  .chart-wrap {
+    height: 180px;
+  }
+}
+
+@media (max-width: 420px) {
+  .stat-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* dashboard.css */
+
+.donut-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Outfit', sans-serif;
+    width: 100%; /* Ép item rộng hết cỡ vùng chứa để không bị méo khi có scroll */
+}
+
+.donut-legend-emoji {
+  font-size: 1.2rem;
+  margin-right: 10px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.donut-legend-label {
+  flex: 1;
+  color: var(--text-main);
+}
+
+.donut-legend-val {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Tìm đến ID donutLegend trong dashboard.css và cập nhật */
+#donutLegend {
+    display: block;      /* CHUYỂN THÀNH BLOCK: Để max-height hoạt động chính xác hơn flex */
+    max-height: 80px;   /* Giới hạn hiển thị khoảng 4 mục */
+    overflow-y: auto;    /* Bật cuộn dọc */
+    overflow-x: hidden;  /* Chống tràn ngang */
+    padding-right: 8px;  
+    margin-top: 5px;
+    
+    /* Đảm bảo không bị các thuộc tính flex từ layout cha can thiệp */
+    flex-shrink: 1; 
+}
+
+/* Tùy chỉnh thanh cuộn để trông hiện đại hơn (giống giao diện chung) */
+#donutLegend::-webkit-scrollbar {
+    width: 5px;
+}
+
+#donutLegend::-webkit-scrollbar-track {
+    background: var(--surface-2);
+    border-radius: 10px;
+}
+
+#donutLegend::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+#donutLegend::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* Container chính của Card */
+.chart-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Thân card - Nơi chứa đồ thị và legend */
+.chart-card__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Căn giữa tất cả các phần tử con theo chiều ngang */
+    padding: 20px;
+    width: 100%;
+}
+
+/* Wrapper của hình tròn */
+.donut-wrapper {
+    position: relative;
+    width: 260px; /* Có thể chỉnh nhỏ lại một chút để cân đối với Card */
+    height: 260px;
+    margin: 0 auto 24px auto; /* Căn giữa và tạo khoảng cách với legend */
+}
+
+/* Con số và nhãn ở giữa tâm */
+.donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Đưa tâm của khối chữ vào đúng tâm hình tròn */
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none; /* Tránh cản trở việc di chuột vào chart */
+    width: 100%;
+}
+
+/* Tinh chỉnh con số cho phông chữ mới */
+.donut-center__num {
+    font-family: var(--font-display); /* Phông chữ đậm bạn vừa đổi */
+    font-size: 3.2rem;
+    font-weight: 900;
+    line-height: 0.9; /* Giảm line-height để số không bị bay lên cao */
+    color: var(--text);
+}
+
+.donut-center__label {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Căn giữa phần Legend */
+.donut-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.ai-widget {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--surface-2);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+}
+
+.btn--ai {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    width: 100%;
+    padding: 12px;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: all 0.3s var(--ease);
+}
+
+.btn--ai:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(91, 103, 247, 0.3);
+}
+
+.ai-advice-box {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: 12px;
+    display: none; /* Ẩn mặc định */
+}
+
+.ai-advice-box.show {
+    display: block;
+    animation: slideUp 0.4s var(--ease);
+}
+
+.ai-advice-header {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#aiAdviceContent {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-container {
+    width: 100%;
+    max-width: 350px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    margin-bottom: 20px; /* Tạo khoảng cách với chân Sidebar */
+}
+
+.chat-header {
+    padding: 12px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--accent);
+    display: flex;
+    justify-content: center; /* Căn giữa ngang */
+    align-items: center;     /* Căn giữa dọc */
+    gap: 8px;
+}
+
+.chat-messages {
+    height: 220px; 
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background-color: var(--surface); /* Giữ màu nền đồng nhất */
+}
+
+.msg {
+    padding: 10px 14px;
+    border-radius: 14px;
+    max-width: 90%;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.user-msg {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 2px;
+}
+
+.ai-msg {
+    align-self: flex-start;
+    background: var(--surface-2);
+    color: var(--text);
+    border-bottom-left-radius: 2px;
+}
+
+.chat-input-area {
+    display: flex;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    gap: 10px;
+    background: var(--surface-2); /* Màu nền khác biệt cho vùng nhập liệu */
+    align-items: center;
+}
+
+.chat-input-area input {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    outline: none;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    min-width: 0; /* Quan trọng: Ngăn input đẩy nút gửi ra ngoài */
+}
+
+#sendBtn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0; /* Đảm bảo nút không bị co lại */
+    transition: transform 0.2s, background 0.2s;
+}
+
+#sendBtn:hover {
+    background: var(--accent-dark);
+    transform: scale(1.05);
+}
+
+#sendBtn i {
+    font-size: 1.1rem;
+}
+

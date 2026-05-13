@@ -826,3 +826,19 @@
     min-width: unset;
   }
 }
+/* task_list.css */
+.drawer-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.drawer-categories .category-tag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff; /* Chữ trắng để nổi bật trên màu nền DB */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

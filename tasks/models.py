@@ -43,6 +43,7 @@ class Board(models.Model):
 # Loại công việc
 class Category(models.Model):
     name = models.CharField(max_length=100)
+    color = models.CharField(max_length=20, default='#94a3b8', verbose_name='Màu nhãn')
 
     def __str__(self):
         return self.name
@@ -80,6 +81,10 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    completed_at = models.DateTimeField(null=True, blank=True)
+    estimated_time = models.IntegerField(default=0, help_text="Phút")
+    actual_time = models.IntegerField(default=0, help_text="Phút")
+
     class Meta:
         ordering = ['created_at']
         verbose_name        = 'Task'
@@ -95,3 +100,12 @@ class Reminder(models.Model):
 
     def __str__(self):
         return f"Reminder for {self.task.title} at {self.reminder_time}"
+    
+class TaskHistory(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='history')
+    old_status = models.ForeignKey('Status', on_delete=models.SET_NULL, null=True, related_name='old_histories')
+    new_status = models.ForeignKey('Status', on_delete=models.SET_NULL, null=True, related_name='new_histories')
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tasks_taskhistory'

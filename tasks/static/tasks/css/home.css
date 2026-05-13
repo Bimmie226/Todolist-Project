@@ -23,7 +23,7 @@
   --text-light: #9ca3af;
 
   /* Typography */
-  --font-display: "Syne", sans-serif;
+  --font-display: "Inter", sans-serif;
   --font-body: "Outfit", sans-serif;
 
   /* Spacing */
@@ -549,17 +549,31 @@ textarea {
 }
 .hero__title {
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.5rem);
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin-bottom: 20px;
+  /* - 3.5rem: Kích thước tối thiểu (trên điện thoại)
+     - 8vw: Tỷ lệ co giãn theo chiều rộng màn hình
+     - 5.5rem: Kích thước tối đa (trên máy tính) 
+  */
+  font-size: clamp(3.5rem, 8vw, 5.5rem); 
+  
+  /* CỰC KỲ QUAN TRỌNG: 
+     Khi chữ càng to, line-height phải càng nhỏ (thường từ 0.9 đến 1.0) 
+     để các dòng chữ khít vào nhau trông mới sang. 
+  */
+  line-height: 0.95; 
+  
+  /* Ép các chữ sát lại nhau một chút để tăng sự mạnh mẽ */
+  letter-spacing: -0.05em; 
+  
+  font-weight: 900; /* Đẩy lên mức đậm nhất */
+  margin-bottom: 32px;
+  text-align: center;
 }
 .hero__title em {
   font-style: normal;
   background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 60%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: 0 10px 30px rgba(91, 103, 247, 0.2);
 }
 .hero__desc {
   font-size: 1.1rem;

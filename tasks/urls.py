@@ -6,6 +6,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'boards', views.BoardViewSet, basename='board')
 router.register(r'tasks', views.TaskViewSet, basename='task')
+router.register(r'categories', views.CategoryViewSet, basename='category')
 
 urlpatterns = [
     # Trang chủ và danh sách (HTML Render)
@@ -15,4 +16,5 @@ urlpatterns = [
 
     # 2. SAU ĐÓ MỚI GỌI ROUTER Ở ĐÂY
     path('api/', include(router.urls)),
+    path('api/ai-advice/', views.get_ai_dashboard_advice, name='ai_advice'),
 ]

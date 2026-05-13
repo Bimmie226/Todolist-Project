@@ -1,0 +1,482 @@
+{% load static %}
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Taskly</title>
+
+    <!-- Reuse shared layout -->
+    <link rel="stylesheet" href="{% static 'charts/css/dashboard.css' %}?v=5555" />
+    <!-- Dashboard-specific styles -->
+    <link rel="stylesheet" href="{% static 'tasks/css/board_list.css' %}?v=5555" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script
+      src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
+      defer
+    ></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <!-- ░░ TOAST ░░ -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+      <span class="toast__icon"></span>
+      <span class="toast__msg"></span>
+      <button class="toast__close" aria-label="Đóng">×</button>
+    </div>
+
+    <!-- ░░ OVERLAY ░░ -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- ══════════════════════════════════════════
+     HEADER — reuse từ board_list
+     ══════════════════════════════════════════ -->
+    <header class="header" id="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Mở sidebar">
+          <i class="ph-bold ph-list"></i>
+        </button>
+        <a href="{% url 'board_list' %}" class="logo">
+          <span class="logo__icon"
+            ><i class="ph-bold ph-check-square"></i
+          ></span>
+          <span class="logo__name">Taskly</span>
+        </a>
+      </div>
+
+      <div class="header__search">
+        <i class="ph-bold ph-magnifying-glass search-icon"></i>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-input"
+          placeholder="Tìm kiếm…"
+          autocomplete="off"
+        />
+        <kbd class="search-kbd">Ctrl F</kbd>
+      </div>
+
+      <div class="header__right">
+        <button class="icon-btn" id="themeToggle" aria-label="Chuyển theme">
+          <i class="ph-bold ph-sun" id="iconSun"></i>
+          <i class="ph-bold ph-moon" id="iconMoon"></i>
+        </button>
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
+          <i class="ph-bold ph-bell"></i>
+          <span class="notif-dot"></span>
+        </button> {% endcomment %}
+        <a href="{% url 'board_list' %}" class="btn btn--primary">
+          <i class="ph-bold ph-squares-four"></i>
+          Boards
+        </a>
+        <div class="user-menu" id="userMenuWrap">
+          <button class="user-avatar" id="userAvatarBtn" aria-label="Menu người dùng" aria-expanded="false">
+              <img id="headerAvatarImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" src="" alt="Avatar">
+              
+              <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
+          </button>
+          <div class="user-dropdown" id="userDropdown" role="menu">
+            <div class="user-dropdown__header">
+              <span class="ud-name" id="udName">{{ user.username }}</span>
+              <span class="ud-email" id="udEmail">{{ user.email }}</span>
+            </div>
+            <hr class="ud-divider" />
+            <a
+              href="{% url 'profile' %}"
+              class="ud-item"
+              role="menuitem"
+              style="
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <i class="ph-bold ph-user-circle"></i> Hồ sơ
+            </a>
+            {% comment %} <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-gear"></i> Cài đặt
+            </button>
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-question"></i> Trợ giúp
+            </button>
+            <hr class="ud-divider" /> {% endcomment %}
+            <button
+              class="ud-item ud-item--danger"
+              id="btnLogout"
+              role="menuitem"
+            >
+              <i class="ph-bold ph-sign-out"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════
+     APP LAYOUT
+     ══════════════════════════════════════════ -->
+    <div class="app-layout" id="appLayout">
+      <!-- ════ SIDEBAR ════ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__inner">
+          <button
+            class="sidebar__collapse"
+            id="sidebarCollapse"
+            aria-label="Thu gọn sidebar"
+          >
+            <i class="ph-bold ph-sidebar-simple"></i>
+          </button>
+
+          <nav class="sidebar__nav">
+            <p class="sidebar__section-label">Phân tích</p>
+            <!-- Dashboard — active -->
+            <a href="{% url 'dashboard_gui' %}" class="sidebar__item active">
+              <i class="ph-bold ph-chart-bar"></i>
+              <span>Dashboard</span>
+            </a>
+
+            <p class="sidebar__section-label">Tổng quan</p>
+            <a href="{% url 'board_list' %}" class="sidebar__item">
+              <i class="ph-bold ph-squares-four"></i>
+              <span>Tất cả Board</span>
+              <span class="sidebar__badge" id="badgeAll">—</span>
+            </a>
+            <a href="{% url 'board_list' %}#favorites" class="sidebar__item">
+              <i class="ph-bold ph-star"></i>
+              <span>Yêu thích</span>
+            </a>
+            <a href="{% url 'board_list' %}#archived" class="sidebar__item">
+              <i class="ph-bold ph-archive"></i>
+              <span>Đã lưu trữ</span>
+            </a>
+
+            <p class="sidebar__section-label">Không gian</p>
+            <a
+              href="{% url 'board_list' %}?filter=personal"
+              class="sidebar__item"
+            >
+              <i class="ph-bold ph-user"></i>
+              <span>Cá nhân</span>
+            </a>
+            <a href="{% url 'board_list' %}?filter=team" class="sidebar__item">
+              <i class="ph-bold ph-users-three"></i>
+              <span>Nhóm</span>
+            </a>
+
+            <p class="sidebar__section-label">Tài khoản</p>
+            <a href="{% url 'profile' %}" class="sidebar__item">
+              <i class="ph-bold ph-user-circle"></i>
+              <span>Hồ sơ</span>
+            </a>
+            <div class="ai-chat-widget">
+                <div id="aiChatBox" class="chat-container">
+                    <div class="chat-header">
+                        <i class="ph-fill ph-sparkle"></i> Taskly AI Assistant
+                    </div>
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="msg ai-msg">Chào bạn! Tôi thấy bạn có một vài công việc cần xử lý. Tôi có thể giúp gì cho bạn?</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="userInput" placeholder="Hỏi AI về lịch trình của bạn...">
+                        <button onclick="sendMessage()" id="sendBtn"><i class="ph-bold ph-paper-plane-right"></i></button>
+                    </div>
+                </div>
+            </div>
+          </nav>
+
+          <!-- Sidebar footer: overall productivity -->
+          <div class="sidebar__footer">
+            <div class="storage-bar">
+              <div class="storage-bar__top">
+                <span>Năng suất tháng</span>
+                <span class="storage-bar__val" id="sidebarScore">0%</span>
+              </div>
+              <div class="storage-bar__track">
+                <div
+                  class="storage-bar__fill"
+                  id="sidebarScoreBar"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ════ MAIN CONTENT — Dashboard ════ -->
+      <main class="main" id="main">
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="page-header__left">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-sub">Phân tích năng suất và tiến độ công việc</p>
+          </div>
+          <div class="page-header__right">
+            <!-- Period selector -->
+            <div class="period-tabs" id="periodTabs">
+              <button class="period-tab active" data-period="week">Tuần</button>
+              <button class="period-tab" data-period="month">Tháng</button>
+            </div>
+            <!-- Export button -->
+            <button
+              class="btn btn--ghost"
+              id="btnExport"
+              title="Xuất báo cáo PNG"
+            >
+              <i class="ph-bold ph-download-simple"></i>
+              Xuất
+            </button>
+            <!-- Mini calendar toggle -->
+            <button class="icon-btn" id="calBtn" title="Chọn khoảng thời gian">
+              <i class="ph-bold ph-calendar-blank"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── A. KPI STAT CARDS ── -->
+        <div class="stat-cards" id="statCards">
+          <div class="stat-card reveal" style="--delay: 0.05s">
+            <div class="stat-card__icon" style="--ic: #5b67f7">
+              <i class="ph-bold ph-check-circle"></i>
+            </div>
+            <div class="stat-card__body">
+              <p class="stat-card__label">Tasks hoàn thành</p>
+              <p class="stat-card__num" id="kpiDone">0</p>
+              <span class="stat-card__trend up" id="kpiDoneTrend">
+                <i class="ph-bold ph-trend-up"></i> +12%
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card reveal" style="--delay: 0.1s">
+            <div class="stat-card__icon" style="--ic: #22c55e">
+              <i class="ph-bold ph-clock"></i>
+            </div>
+            <div class="stat-card__body">
+              <p class="stat-card__label">Thời gian trung bình</p>
+              <p class="stat-card__num" id="kpiAvgTime">0h</p>
+              <span class="stat-card__trend down" id="kpiTimeTrend">
+                <i class="ph-bold ph-trend-down"></i> -0.3h
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card reveal" style="--delay: 0.15s">
+            <div class="stat-card__icon" style="--ic: #f59e0b">
+              <i class="ph-bold ph-warning-circle"></i>
+            </div>
+            <div class="stat-card__body">
+              <p class="stat-card__label">Task quá hạn</p>
+              <p class="stat-card__num" id="kpiOverdue">0</p>
+              <span class="stat-card__trend neutral" id="kpiOverdueTrend">
+                <i class="ph-bold ph-minus"></i> Không đổi
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card reveal" style="--delay: 0.2s">
+            <div class="stat-card__icon" style="--ic: #ec4899">
+              <i class="ph-bold ph-lightning"></i>
+            </div>
+            <div class="stat-card__body">
+              <p class="stat-card__label">Điểm năng suất</p>
+              <p class="stat-card__num" id="kpiScore">0%</p>
+              <span class="stat-card__trend up" id="kpiScoreTrend">
+                <i class="ph-bold ph-trend-up"></i> +5%
+              </span>
+            </div>
+          </div>
+        </div>
+        <!-- /.stat-cards -->
+
+        <!-- ── B. CHARTS ROW ── -->
+        <div class="charts-row">
+          <!-- Burn-down chart (left) -->
+          <div
+            class="chart-card reveal"
+            style="--delay: 0.25s"
+            id="burndownCard"
+          >
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Burn-down Chart</h3>
+                <p class="chart-card__sub">
+                  Tiến độ giảm task còn lại theo ngày
+                </p>
+              </div>
+              <div class="chart-card__actions">
+                <button
+                  class="chart-action-btn active"
+                  data-bd="sprint"
+                  id="bdSprint"
+                >
+                  Sprint
+                </button>
+                <button class="chart-action-btn" data-bd="month" id="bdMonth">
+                  Tháng
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="burndownChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Productivity chart (right) -->
+          <div
+            class="chart-card reveal"
+            style="--delay: 0.3s"
+            id="productivityCard"
+          >
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Weekly Productivity Overview</h3>
+                <p class="chart-card__sub" id="prodSubtitle">
+                  Tasks hoàn thành mỗi ngày trong tuần
+                </p>
+              </div>
+              <div class="chart-card__actions">
+                <button
+                  class="chart-action-btn active"
+                  data-chart="bar"
+                  id="chartBar"
+                >
+                  <i class="ph-bold ph-chart-bar"></i>
+                </button>
+                <button
+                  class="chart-action-btn"
+                  data-chart="line"
+                  id="chartLine"
+                >
+                  <i class="ph-bold ph-chart-line-up"></i>
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="productivityChart"></canvas>
+            </div>
+            <!-- Highlight best day -->
+            <div class="best-day-badge" id="bestDayBadge">
+              <i class="ph-bold ph-trophy"></i>
+              <span id="bestDayText">Năng suất cao nhất: —</span>
+            </div>
+          </div>
+        </div>
+        <!-- /.charts-row -->
+
+        <!-- ── C. PROGRESS + CATEGORY ROW ── -->
+        <div class="bottom-row">
+          <!-- Overall progress -->
+          <div class="chart-card reveal" style="--delay: 0.35s">
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Tiến độ tổng thể</h3>
+                <p class="chart-card__sub">Tỷ lệ hoàn thành theo board</p>
+              </div>
+            </div>
+            <div class="progress-list" id="progressList">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+
+          <!-- Category donut -->
+          <div class="chart-card reveal" style="--delay: 0.4s">
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Phân loại Task</h3>
+                <p class="chart-card__sub">Theo danh mục</p>
+              </div>
+            </div>
+
+            <div class="chart-card__body">
+              <div class="donut-wrapper">
+                <canvas id="categoryChart"></canvas>
+                <div class="donut-center" id="donutCenter">
+                  <span class="donut-center__num" id="donutTotal">0</span>
+                  <span class="donut-center__label">Tổng tasks</span>
+                </div>
+              </div>
+              
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+
+          <!-- Mini calendar -->
+          <div class="chart-card reveal" style="--delay: 0.45s" id="calendarCard">
+            <div class="chart-card__header">
+              <div>
+                <h3 class="chart-card__title">Lịch hoạt động</h3>
+                <p class="chart-card__sub">Task hoàn thành theo ngày</p>
+              </div>
+              <div class="chart-card__actions">
+                <button class="chart-action-btn" id="calPrev">‹</button>
+                
+                <span class="cal-month-label" id="calMonthLabel"></span>
+                
+                <button class="chart-action-btn" id="calNext">›</button>
+              </div>
+            </div>
+
+            <div class="mini-calendar" id="miniCalendar"></div>
+
+            <div class="cal-legend">
+              <span class="cal-legend__item">
+                <span class="cal-dot" style="background: var(--accent-light)"></span>
+                1–2
+              </span>
+              <span class="cal-legend__item">
+                <span class="cal-dot" style="background: var(--accent)"></span>
+                3–5
+              </span>
+              <span class="cal-legend__item">
+                <span class="cal-dot" style="background: #4454e8"></span>
+                6+
+              </span>
+            </div>
+          </div>
+        </div>
+        <!-- /.bottom-row -->
+
+        <!-- ── D. INSIGHTS & SUGGESTIONS ── -->
+        <div class="insights-section reveal" style="--delay: 0.5s">
+          <div class="insights-header">
+            <h3 class="insights-title">
+              <i class="ph-bold ph-lightbulb"></i>
+              Performance Insights
+            </h3>
+          </div>
+          <div class="insights-grid" id="insightsGrid">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </main>
+    </div>
+    <!-- /.app-layout -->
+
+    <!-- FAB (mobile) -->
+    <button
+      class="fab"
+      id="fab"
+      aria-label="Xuất báo cáo"
+      onclick="exportDashboard()"
+    >
+      <i class="ph-bold ph-download-simple"></i>
+    </button>
+    <script>
+      // Cầu nối dữ liệu từ Django sang JS
+      window.TasklyConfig = {
+        username: "{{ request.user.username|default:'User' }}",
+        boardId: "{{ board.id|default:'' }}"
+      };
+    </script>
+
+    <script src="{% static 'charts/js/dashboard.js' %}?v=5555"></script>
+  </body>
+</html>

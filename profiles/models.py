@@ -15,8 +15,7 @@ class Profile(models.Model):
     phone         = models.CharField(max_length=15, blank=True, null=True)
     address       = models.CharField(max_length=255, blank=True)
     birth_date    = models.DateField(blank=True, null=True)
-    desc          = models.TextField(blank=True, default='')
-    
+    bio           = models.TextField(blank=True, default='') 
     last_login_ip = models.GenericIPAddressField(blank=True, null=True)
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)

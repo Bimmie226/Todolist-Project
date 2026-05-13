@@ -81,13 +81,19 @@ function saveTokens({ access, refresh }) {
   if (refresh) localStorage.setItem(LS.REFRESH, refresh);
 }
 
-/** Xóa tokens & chuyển về login */
+/** Đăng xuất thực sự trên cả Client và Server */
 function logout(reason = "") {
+  // 1. Xóa tokens ở LocalStorage (Dành cho JWT)
   localStorage.removeItem(LS.ACCESS);
   localStorage.removeItem(LS.REFRESH);
+  localStorage.removeItem("taskly-profile"); // Xóa thêm thông tin profile nếu có lưu
+
   if (reason) showToast(reason, "error");
+
+  // 2. Chuyển hướng đến Route logout của Django để xóa Session
   setTimeout(() => {
-    window.location.href = "/";
+    // URL này phải khớp với path('logout/', ...) trong urls.py của bạn
+    window.location.href = "/logout/";
   }, 1200);
 }
 
@@ -142,22 +148,12 @@ function authHeaders(extra = {}) {
   };
 }
 
-// /** Headers chuẩn cho mọi API call (JSON + JWT Bearer) */
-// function authHeaders(extra = {}) {
-//   return {
-//     "Content-Type": "application/json",
-//     Authorization: `Bearer ${getToken()}`,
-//     ...extra,
-//   };
-// }
-
 /* ════════════════════════════════════════════════════
    C. BOARD API — HTTP SERVICE LAYER
    ════════════════════════════════════════════════════
    Tất cả fetch() calls đều nằm ở đây.
    UI code không bao giờ gọi fetch() trực tiếp.
-   Swap URL này với production domain mà không cần
-   thay đổi bất kỳ dòng UI code nào.
+   Swap URL này với production domain
    ════════════════════════════════════════════════════ */
 const BoardAPI = {
   /**
@@ -199,8 +195,7 @@ const BoardAPI = {
   },
 
   /**
-   * GET /api/boards/
-   * Lấy danh sách boards có filter & search.
+   * Lấy danh sách boards có filter & search. (GET /api/boards/)
    * @param {Object} params — { search, type, favorite, archived, ordering }
    */
   async getAll(params = {}) {
@@ -227,8 +222,7 @@ const BoardAPI = {
   },
 
   /**
-   * POST /api/boards/
-   * Tạo board mới, lưu vào DB, trả về board vừa tạo.
+   * Tạo board mới, lưu vào DB, trả về board vừa tạo.(POST /api/boards/)
    * @param {Object} payload — { name, desc, color, board_type }
    */
   async create(payload) {
@@ -241,8 +235,7 @@ const BoardAPI = {
   },
 
   /**
-   * PATCH /api/boards/{id}/
-   * Cập nhật một phần board.
+   * Cập nhật một phần board.(PATCH /api/boards/{id}/)
    * @param {string} id
    * @param {Object} payload
    */
@@ -256,8 +249,7 @@ const BoardAPI = {
   },
 
   /**
-   * DELETE /api/boards/{id}/
-   * Xóa board khỏi DB.
+   * Xóa board khỏi DB.(DELETE /api/boards/{id}/)
    */
   async delete(id) {
     return this._fetch(`/boards/${id}/`, {
@@ -290,8 +282,7 @@ const BoardAPI = {
   },
 
   /**
-   * GET /api/boards/stats/
-   * Lấy số liệu thống kê cho sidebar badges.
+   * Lấy số liệu thống kê cho sidebar badges.(GET /api/boards/stats/)
    */
   async getStats() {
     return this._fetch("/boards/stats/");
@@ -347,18 +338,58 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   localStorage.setItem(LS.THEME, next);
 });
 
-(function loadUser() {
-  const username = localStorage.getItem(LS.USERNAME) || "user";
-  const initials = username.substring(0, 2).toUpperCase();
-  document.getElementById("userInitials").textContent = initials;
-  document.getElementById("udName").textContent = username;
-  document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
-})();
+// (function loadUser() {
+//   const username = localStorage.getItem(LS.USERNAME) || "user";
+//   const initials = username.substring(0, 2).toUpperCase();
+//   document.getElementById("userInitials").textContent = initials;
+//   document.getElementById("udName").textContent = username;
+//   document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
+// })();
 
 document.getElementById("btnLogout").addEventListener("click", () => {
   logout("Đã đăng xuất thành công.");
 });
 
+/* ════════════════════════════════════════════════════
+   Khởi tạo thông tin Header từ Profile API (Sửa lỗi)
+   ════════════════════════════════════════════════════ */
+async function initHeaderProfile() {
+  try {
+    // 1. Đường dẫn phải khớp với urls.py: /profile/api/me/
+    const res = await fetch("/profile/api/me/"); 
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    const profile = data.profile; // Lấy object profile từ response
+
+    // 2. Cập nhật Text (Tên và Email)
+    const udName = document.getElementById("udName");
+    const udEmail = document.getElementById("udEmail");
+    
+    const displayName = profile.username || "Người dùng"; 
+    const displayEmail = profile.email || "Chưa có email";
+
+    // 3. Cập nhật Avatar (Ảnh hoặc Chữ cái đầu)
+    const headerImg = document.getElementById("headerAvatarImg");
+    const initials = document.getElementById("userInitials");
+
+    if (profile.avatar_url && headerImg && initials) {
+      headerImg.src = profile.avatar_url;
+      headerImg.style.display = "block";
+      initials.style.display = "none";
+    } else if (initials) {
+      headerImg.style.display = "none";
+      initials.style.display = "block";
+      const nameForInit = profile.full_name || profile.name || "User";
+      initials.textContent = nameForInit.substring(0, 2).toUpperCase();
+    }
+  } catch (err) {
+    console.error("Lỗi cập nhật header:", err);
+  }
+}
+
+// Gọi hàm ngay khi load trang
+document.addEventListener("DOMContentLoaded", initHeaderProfile);
 /* ════════════════════════════════════════════════════
    F. SIDEBAR & HEADER
    ════════════════════════════════════════════════════ */
@@ -565,12 +596,6 @@ function buildCard(board, idx) {
       </div>
     </div>`;
 
-  // card.addEventListener("click", (e) => {
-  //   if (e.target.closest(".card-menu-btn")) return;
-  //   showToast(`Đang mở board "${board.name}"…`, "info");
-  //   // window.location.href = `board_detail.html?id=${board.id}`;
-  // });
-
   card.addEventListener("click", (e) => {
     if (e.target.closest(".card-menu-btn")) return;
     // Navigate to task management page for this board
@@ -601,6 +626,10 @@ const boardDescInput = document.getElementById("boardDesc");
 const boardNameErr = document.getElementById("boardNameErr");
 const boardNameCount = document.getElementById("boardNameCount");
 
+// ════ THÊM MỚI: biến lưu thành viên ════
+let boardMembers = [];
+// ════════════════════════════════════════
+
 function openModal(editId = null) {
   ui.editingId = editId;
 
@@ -609,7 +638,21 @@ function openModal(editId = null) {
     board = ui.boards.find((b) => b.id === editId) || null;
   }
 
-  // Reset form
+  // 1. NẠP LẠI THÀNH VIÊN TỪ DB NẾU ĐANG EDIT
+  if (board && board.members && board.members.length > 0) {
+    // Backend trả về mảng object [{username: 'a'}, ...], ta tách lấy mảng chữ
+    boardMembers = board.members.map((m) => m.username);
+  } else {
+    // Nếu tạo mới hoặc board trống thì reset
+    boardMembers = [];
+  }
+
+  // 2. RENDER VÀ CẬP NHẬT SỐ LƯỢNG VÀO BADGE
+  renderMembers();
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) badge.textContent = boardMembers.length; // Hiển thị số lượng
+
+  // ... (Phần code set boardNameInput, boardDescInput, UI picker... giữ nguyên như cũ)
   boardNameInput.value = board ? board.name : "";
   boardDescInput.value = board ? board.desc || "" : "";
   boardNameErr.textContent = "";
@@ -717,24 +760,22 @@ modalSubmit.addEventListener("click", async () => {
     desc: boardDescInput.value.trim(),
     color: ui.selectedColor,
     board_type: ui.selectedType,
+    // ════ THÊM MỚI: gửi danh sách thành viên lên server ════
+    members: boardMembers,
+    // ═══════════════════════════════════════════════════════
   };
 
   try {
     if (ui.editingId) {
-      // ── UPDATE ─────────────────────────────────────────
       const res = await BoardAPI.update(ui.editingId, payload);
       showToast(res.message || `Board đã được cập nhật!`, "success");
     } else {
-      // ── CREATE ─────────────────────────────────────────
       const res = await BoardAPI.create(payload);
       showToast(res.message || `Board đã được tạo thành công! 🎉`, "success");
     }
-
     closeModal();
-    // ← Chỉ sau khi DB xác nhận thành công mới render lại
     await fetchAndRender();
   } catch (err) {
-    // Lỗi từ server (validation duplicate, auth...) → hiển thị
     const msg = err.message || "Đã xảy ra lỗi. Vui lòng thử lại.";
     boardNameErr.textContent = msg;
     boardNameInput.classList.add("error");
@@ -742,11 +783,140 @@ modalSubmit.addEventListener("click", async () => {
   }
 });
 
+// ════════════════════════════════════════════════════
+// THÊM MỚI: Color picker + Type picker + Member input
+// ════════════════════════════════════════════════════
+
+// Color picker
+function syncColorPicker() {
+  document.querySelectorAll(".color-swatch").forEach((sw) => {
+    sw.classList.toggle("active", sw.dataset.color === ui.selectedColor);
+  });
+}
+document.getElementById("colorPicker").addEventListener("click", (e) => {
+  const sw = e.target.closest(".color-swatch");
+  if (!sw) return;
+  ui.selectedColor = sw.dataset.color;
+  syncColorPicker();
+});
+
+// Type picker — khi chọn "Nhóm" thì hiện ô nhập thành viên
+function syncTypePicker() {
+  document.querySelectorAll('input[name="boardType"]').forEach((r) => {
+    r.checked = r.value === ui.selectedType;
+  });
+  // Đồng bộ hiển thị member section theo loại hiện tại
+  toggleMemberSection(ui.selectedType === "team");
+}
+
+document.getElementById("typePicker").addEventListener("change", (e) => {
+  if (e.target.type !== "radio") return;
+  ui.selectedType = e.target.value;
+  toggleMemberSection(e.target.value === "team");
+});
+
+// Hiện / ẩn phần thêm thành viên
+function toggleMemberSection(show) {
+  const section = document.getElementById("memberSection");
+  if (!section) return;
+  section.classList.toggle("open", show);
+
+  // Khi ẩn → reset toàn bộ
+  if (!show) {
+    boardMembers = [];
+    renderMembers();
+    const input = document.getElementById("memberInput");
+    if (input) input.value = "";
+    const badge = document.getElementById("memberCountBadge");
+    if (badge) badge.textContent = "0";
+    const errEl = document.getElementById("memberInputErr");
+    if (errEl) errEl.textContent = "";
+  }
+}
+
+// Nút "+" và phím Enter để thêm thành viên
+document.getElementById("btnAddMember")?.addEventListener("click", addMember);
+
+document.getElementById("memberInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addMember();
+  }
+});
+
+function addMember() {
+  const input = document.getElementById("memberInput");
+  const errEl = document.getElementById("memberInputErr");
+  const val = (input?.value || "").trim();
+
+  if (errEl) errEl.textContent = "";
+
+  if (!val) {
+    if (errEl) errEl.textContent = "Vui lòng nhập username.";
+    return;
+  }
+  if (boardMembers.includes(val)) {
+    if (errEl) errEl.textContent = `"${val}" đã được thêm rồi.`;
+    return;
+  }
+
+  boardMembers.push(val);
+  if (input) input.value = "";
+  renderMembers();
+
+  // Cập nhật badge + animation
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) {
+    badge.textContent = boardMembers.length;
+    badge.animate(
+      [
+        { transform: "scale(1)" },
+        { transform: "scale(1.4)" },
+        { transform: "scale(1)" },
+      ],
+      { duration: 300 },
+    );
+  }
+}
+
+function removeMember(username) {
+  boardMembers = boardMembers.filter((u) => u !== username);
+  const badge = document.getElementById("memberCountBadge");
+  if (badge) badge.textContent = boardMembers.length;
+  renderMembers();
+}
+window.removeMember = removeMember; // cần expose vì gọi từ innerHTML
+
+function renderMembers() {
+  const list = document.getElementById("memberList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  boardMembers.forEach((username) => {
+    const chip = document.createElement("div");
+    chip.className = "member-chip";
+    chip.innerHTML = `
+      <span class="member-chip__av">
+        ${username.substring(0, 2).toUpperCase()}
+      </span>
+      <span class="member-chip__name">@${username}</span>
+      <span class="member-chip__role">Thành viên</span>
+      <button class="member-chip__remove"
+        onclick="removeMember('${username}')"
+        title="Xóa ${username}">
+        <i class="ph-bold ph-x"></i>
+      </button>`;
+    list.appendChild(chip);
+  });
+}
+
 /* ════════════════════════════════════════════════════
    I. CONTEXT MENU
    ════════════════════════════════════════════════════ */
 const contextMenu = document.getElementById("contextMenu");
 let ctxBoardId = null;
+
+// board_list.js
 
 function openContextMenu(e, boardId) {
   closeContextMenu();
@@ -755,14 +925,24 @@ function openContextMenu(e, boardId) {
   const board = ui.boards.find((b) => b.id === boardId);
   if (!board) return;
 
+  // KIỂM TRA QUYỀN
+  const isOwner = board.is_owner; // Biến này lấy từ BoardSerializer
+
+  // 1. Ẩn/Hiện các mục menu dựa trên quyền (Ẩn cả thẻ li để menu gọn hơn)
+  const editBtn = document.getElementById("ctxEdit");
+  const deleteBtn = document.getElementById("ctxDelete");
+  const archiveBtn = document.getElementById("ctxArchive");
+
+  if (editBtn) editBtn.parentElement.style.display = isOwner ? "block" : "none";
+  if (deleteBtn) deleteBtn.parentElement.style.display = isOwner ? "block" : "none";
+  if (archiveBtn) archiveBtn.parentElement.style.display = isOwner ? "block" : "none";
+
+  // 2. Cập nhật nội dung các nút còn lại
   document.getElementById("ctxFav").innerHTML = board.is_favorite
     ? '<i class="ph-bold ph-star-fill" style="color:var(--amber)"></i> Bỏ yêu thích'
     : '<i class="ph-bold ph-star"></i> Thêm yêu thích';
 
-  document.getElementById("ctxArchive").innerHTML = board.is_archived
-    ? '<i class="ph-bold ph-archive-tray"></i> Khôi phục'
-    : '<i class="ph-bold ph-archive"></i> Lưu trữ';
-
+  // Hiển thị menu
   const x = Math.min(e.clientX, window.innerWidth - 200);
   const y = Math.min(e.clientY, window.innerHeight - 260);
   contextMenu.style.left = `${x}px`;
@@ -832,7 +1012,6 @@ document.getElementById("ctxDelete").addEventListener("click", async () => {
 
   if (!confirm(`Xóa board "${name}"?\nHành động này không thể hoàn tác.`))
     return;
-
   try {
     const res = await BoardAPI.delete(id);
     showToast(res.message || `Board "${name}" đã bị xóa.`, "error");
@@ -894,11 +1073,6 @@ function showPreview(board) {
         .join("")
     : '<p style="font-size:.78rem;color:var(--text-light)">Chưa có task nào.</p>';
 
-  // document.getElementById("qpOpen").onclick = () =>
-  //   showToast(`Đang mở board "${board.name}"…`, "info");
-  // positionPreview();
-  // quickPreview.classList.add("show");
-
   document.getElementById("qpOpen").onclick = () => {
     window.location.href = `/boards/${board.id}/tasks/`;
   };
@@ -908,8 +1082,6 @@ function showPreview(board) {
 
 /* ════════════════════════════════════════════════════
    K. DRAG & DROP (client-side reorder)
-   Chú ý: reorder chỉ là visual — không persist thứ tự vào DB
-   (cần thêm endpoint PATCH /boards/{id}/reorder/ nếu muốn)
    ════════════════════════════════════════════════════ */
 let _dragSrcId = null;
 
@@ -1030,27 +1202,6 @@ document.getElementById("viewList").addEventListener("click", () => {
   renderGrid(ui.boards);
 });
 
-// Color & type pickers
-function syncColorPicker() {
-  document.querySelectorAll(".color-swatch").forEach((sw) => {
-    sw.classList.toggle("active", sw.dataset.color === ui.selectedColor);
-  });
-}
-function syncTypePicker() {
-  document.querySelectorAll('input[name="boardType"]').forEach((r) => {
-    r.checked = r.value === ui.selectedType;
-  });
-}
-document.getElementById("colorPicker").addEventListener("click", (e) => {
-  const sw = e.target.closest(".color-swatch");
-  if (!sw) return;
-  ui.selectedColor = sw.dataset.color;
-  syncColorPicker();
-});
-document.getElementById("typePicker").addEventListener("change", (e) => {
-  if (e.target.type === "radio") ui.selectedType = e.target.value;
-});
-
 /* ════════════════════════════════════════════════════
    M. KEYBOARD SHORTCUTS
    ════════════════════════════════════════════════════ */
@@ -1108,22 +1259,9 @@ skeletonStyle.textContent = `
 `;
 document.head.appendChild(skeletonStyle);
 
-// Kiểm tra đăng nhập
-// if (!getToken()) {
-//   logout("Bạn chưa đăng nhập.");
-// } else {
-//   // Tải boards từ DB ngay khi vào trang
-//   fetchAndRender().then(() => {
-//     if (!sessionStorage.getItem("taskly-greeted")) {
-//       sessionStorage.setItem("taskly-greeted", "1");
-//       const u = localStorage.getItem(LS.USERNAME) || "bạn";
-//       showToast(`Chào mừng trở lại, ${u}! 👋`, "success");
-//     }
-//   });
-// }
-// ĐOẠN CODE MỚI
-// Không cần getToken() nữa, vì Django Session (Cookie) đã xác thực người dùng.
 fetchAndRender().then(() => {
+  initHeaderProfile();
+
   if (!sessionStorage.getItem("taskly-greeted")) {
     sessionStorage.setItem("taskly-greeted", "1");
     // Lấy tạm username, sau này có thể truyền thẳng từ Django Template xuống

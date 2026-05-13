@@ -1,31 +1,114 @@
 from rest_framework import serializers
 from .models import Task, Board, Status, Priority, Category
+from django.contrib.auth import get_user_model
+
+# Lấy chuẩn Model User
+User = get_user_model() 
 
 class BoardSerializer(serializers.ModelSerializer):
+    total_tasks = serializers.SerializerMethodField()
+    done_tasks = serializers.SerializerMethodField()
+    completion_pct = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+    
+    # Trường nhận mảng username từ giao diện
+    members = serializers.ListField(
+        child=serializers.CharField(), 
+        required=False, 
+        write_only=True
+    )
+
     class Meta:
         model = Board
-        fields = '__all__'
-        read_only_fields = ['owner'] # Không cho phép user tự sửa trường owner
+        fields = [
+            'id', 'name', 'desc', 'color', 'board_type', 
+            'is_favorite', 'is_archived', 'updated_at', 'created_at',
+            'total_tasks', 'done_tasks', 'completion_pct',
+            'owner', 'members', 'is_owner'
+        ]
+        read_only_fields = ['owner'] 
+
+    def get_is_owner(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.owner == request.user
+        return False
+
+    def get_total_tasks(self, obj):
+        return obj.tasks.count() 
+
+    def get_done_tasks(self, obj):
+        # Tối ưu: Lọc theo tên trạng thái thay vì ID số 7
+        return obj.tasks.filter(status__name__icontains='done').count()
+
+    def get_completion_pct(self, obj):
+        total = self.get_total_tasks(obj)
+        if total == 0:
+            return 0  
+        done = self.get_done_tasks(obj)
+        return int((done / total) * 100)
+
+    def create(self, validated_data):
+        usernames = validated_data.pop('members', [])
+        board = super().create(validated_data)
+        
+        if usernames:
+            users = User.objects.filter(username__in=usernames)
+            board.members.set(users)
+            board.board_type = 'team' 
+            board.save()
+        return board
+
+    def update(self, instance, validated_data):
+        usernames = validated_data.pop('members', None)
+        board = super().update(instance, validated_data)
+        
+        if usernames is not None:
+            users = User.objects.filter(username__in=usernames)
+            board.members.set(users)
+            board.board_type = 'team' if users.exists() else 'personal'
+            board.save()
+        return board
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        representation['members'] = [
+            {
+                "id": user.id,
+                "username": user.username,
+                "avatar": getattr(user, 'avatar', None) 
+            }
+            for user in instance.members.all()
+        ]
+        return representation
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'color']
 
 class TaskSerializer(serializers.ModelSerializer):
-    # Đổi slug_field thành 'name' để khớp với Model của bạn
     status = serializers.SlugRelatedField(slug_field='name', queryset=Status.objects.all())
     priority = serializers.SlugRelatedField(slug_field='name', queryset=Priority.objects.all())
-    
-    # Map dueDate (JS) với due_date (DB)
     dueDate = serializers.DateField(source='due_date', required=False, allow_null=True)
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), 
+        many=True, 
+        required=False
+    )
 
     class Meta:
         model = Task
-        # Tạm thời bỏ qua 'category' để test tạo task chạy trước đã
-        fields = ['id', 'board', 'title', 'desc', 'status', 'priority', 'dueDate', 'assignee', 'created_at', 'updated_at']
+        fields = [
+            'id', 'board', 'title', 'desc', 'status', 
+            'priority', 'dueDate', 'assignee', 'category',
+            'created_at', 'updated_at'
+        ]
 
-    def to_internal_value(self, data):
-        # Xử lý dữ liệu từ JS gửi lên
-        if data.get('dueDate') == "":
-            data['dueDate'] = None
-        
-        # CHỖ NÀY CỰC QUAN TRỌNG: 
-        # JS gửi lên "Cần làm", nhưng trong DB có thể bạn lưu là "Cần làm" (có dấu)
-        # Hãy đảm bảo giá trị gửi lên từ JS khớp 100% với cột 'name' trong Database
-        return super().to_internal_value(data)
+    # ĐÃ ĐƯA VÀO TRONG CLASS:
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Trả về mảng ID để khớp với logic xử lý của Javascript
+        representation['categories'] = [cat.id for cat in instance.category.all()]
+        return representation

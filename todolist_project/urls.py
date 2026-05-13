@@ -20,22 +20,27 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from tasks import views as task_views 
+from profiles import views as profile_views
 
 
 # Tạo router tự động sinh ra các đường dẫn /api/boards/
 router = DefaultRouter()
 router.register(r'boards', task_views.BoardViewSet, basename='board')
-# CŨ: router.register(r'boards', task_views.BoardViewSet, basename='board')
+
 router.register(r'tasks', task_views.TaskViewSet, basename='task')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    path('logout/', profile_views.user_logout, name='logout'),
+
     path('', include('tasks.urls')),
     path('', include('profiles.urls')),   
     
     path('accounts/', include('accounts.urls')),
-    path('boards/', task_views.board_list, name='board_list'),
-    path('api/', include(router.urls)),
+    path('accounts/', include('allauth.urls')),
+
+    path('charts/', include('charts.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

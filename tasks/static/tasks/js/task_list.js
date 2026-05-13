@@ -82,12 +82,35 @@ const ui = {
   ctxTaskId: null, // task id for context menu
   boardColor: "#5b67f7",
   boardName: "Board",
+  categories: [],
+  tasks: []
 };
+
+function getColorCircle(hex) {
+    const colorMap = {
+        '#6366f1': '🟣', // Công việc
+        '#0ea5e9': '🔵', // Học tập
+        '#10b981': '🟢', // Sức khỏe
+        '#ec4899': '🌸', // Gia đình
+        '#f59e0b': '🟡', // Tài chính
+        '#8b5cf6': '💜', // Việc nhà
+        '#f43f5e': '🔴', // Giải trí
+        '#64748b': '⚪', // Quản trị
+        '#94a3b8': '🔘'  // Khác
+    };
+    return colorMap[hex] || '⚪';
+}
 
 /* ════════════════════════════════════════════════════
    B. TASK API — Giao tiếp với Django
    ════════════════════════════════════════════════════ */
 const TaskAPI = {
+  async get(id) {
+    const res = await fetch(`${API_BASE}/tasks/${id}/`);
+    if (!res.ok) throw new Error("Lỗi tải chi tiết task");
+    return res.json();
+  },
+
   async getAll(boardId) {
     const res = await fetch(`${API_BASE}/tasks/?board=${boardId}`);
     if (!res.ok) throw new Error("Lỗi tải tasks");
@@ -178,6 +201,47 @@ const TaskDB = {
     fetchAndRenderTasks();
   },
 };
+
+const CategoryAPI = {
+  async getAll() {
+    const res = await fetch(`${API_BASE}/categories/`);
+    if (!res.ok) throw new Error("Lỗi tải danh mục");
+    return res.json();
+  }
+};
+
+async function fetchAndPopulateCategories() {
+  try {
+    const categories = await CategoryAPI.getAll();
+    ui.categories = categories;
+
+    const filterSelect = document.getElementById("filterCategory");
+    const modalSelect = document.getElementById("taskCategory");
+
+    if (filterSelect) {
+      let filterHtml = '<option value="">Tất cả danh mục</option>';
+      categories.forEach(cat => {
+        filterHtml += `<option value="${cat.id}">${escHtml(cat.name)}</option>`;
+      });
+      filterSelect.innerHTML = filterHtml;
+    }
+
+    if (modalSelect) {
+      let html = '<option value="" selected disabled>Chọn danh mục...</option>';
+      
+      html += categories.map(cat => {
+        // Lấy hình tròn dựa trên mã màu từ DB
+        const circle = getColorCircle(cat.color); 
+        return `<option value="${cat.id}">${circle} ${escHtml(cat.name)}</option>`;
+      }).join("");
+      
+      modalSelect.innerHTML = html;
+    }
+  } catch (err) {
+    console.error("Lỗi khi đổ dữ liệu danh mục:", err);
+    if (window.showToast) showToast("Không thể tải danh sách danh mục", "error");
+  }
+}
 
 /* ════════════════════════════════════════════════════
    C. TOAST & UTILS
@@ -286,22 +350,71 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   localStorage.setItem(LS.THEME, next);
 });
 
-(function loadUser() {
-  const username = localStorage.getItem(LS.USERNAME) || "user";
-  document.getElementById("userInitials").textContent = username
-    .substring(0, 2)
-    .toUpperCase();
-  document.getElementById("udName").textContent = username;
-  document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
-})();
+// (function loadUser() {
+//   const username = localStorage.getItem(LS.USERNAME) || "user";
+//   document.getElementById("userInitials").textContent = username
+//     .substring(0, 2)
+//     .toUpperCase();
+//   document.getElementById("udName").textContent = username;
+//   document.getElementById("udEmail").textContent = `${username}@taskly.vn`;
+// })();
 
-document.getElementById("btnLogout").addEventListener("click", () => {
-  localStorage.removeItem("taskly-access-token");
-  showToast("Đã đăng xuất.", "info");
-  setTimeout(() => {
-    location.href = "/";
-  }, 1000);
-});
+const btnLogout = document.getElementById("btnLogout");
+
+
+if (btnLogout) {
+  btnLogout.addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    showToast("Đang đăng xuất...", "info");
+
+    setTimeout(() => {
+      // Gọi đến URL logout để Django xóa Session trên Server
+      window.location.href = "/logout/";
+    }, 800);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   Khởi tạo thông tin Header từ Profile API (Sửa lỗi)
+   ════════════════════════════════════════════════════ */
+async function initHeaderProfile() {
+  try {
+    // 1. Đường dẫn phải khớp với urls.py: /profile/api/me/
+    const res = await fetch("/profile/api/me/"); 
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    const profile = data.profile; // Lấy object profile từ response
+
+    // 2. Cập nhật Text (Tên và Email)
+    const udName = document.getElementById("udName");
+    const udEmail = document.getElementById("udEmail");
+    
+    const displayName = profile.username || "Người dùng"; 
+    const displayEmail = profile.email || "Chưa có email";
+
+    // 3. Cập nhật Avatar (Ảnh hoặc Chữ cái đầu)
+    const headerImg = document.getElementById("headerAvatarImg");
+    const initials = document.getElementById("userInitials");
+
+    if (profile.avatar_url && headerImg && initials) {
+      headerImg.src = profile.avatar_url;
+      headerImg.style.display = "block";
+      initials.style.display = "none";
+    } else if (initials) {
+      headerImg.style.display = "none";
+      initials.style.display = "block";
+      const nameForInit = profile.full_name || profile.name || "User";
+      initials.textContent = nameForInit.substring(0, 2).toUpperCase();
+    }
+  } catch (err) {
+    console.error("Lỗi cập nhật header:", err);
+  }
+}
+
+// Gọi hàm ngay khi load trang
+document.addEventListener("DOMContentLoaded", initHeaderProfile);
 
 /* ════════════════════════════════════════════════════
    E. SIDEBAR & HEADER
@@ -310,29 +423,34 @@ const sidebar = document.getElementById("sidebar");
 const appLayout = document.getElementById("appLayout");
 const overlay = document.getElementById("overlay");
 
+// Toggle Sidebar (Desktop & Mobile)
 document.getElementById("sidebarCollapse").addEventListener("click", () => {
   sidebar.classList.toggle("collapsed");
   appLayout.classList.toggle("collapsed");
 });
+
 document.getElementById("hamburger").addEventListener("click", () => {
   const open = sidebar.classList.toggle("mobile-open");
   overlay.classList.toggle("show", open);
 });
+
 overlay.addEventListener("click", () => {
   sidebar.classList.remove("mobile-open");
   overlay.classList.remove("show");
 });
 
-// User dropdown
+// User dropdown logic
 const userAvatarBtn = document.getElementById("userAvatarBtn");
 const userDropdown = document.getElementById("userDropdown");
-userAvatarBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  userDropdown.classList.toggle("open");
-});
+if (userAvatarBtn) {
+  userAvatarBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    userDropdown.classList.toggle("open");
+  });
+}
 document.addEventListener("click", () => userDropdown.classList.remove("open"));
 
-// Sidebar filter items
+// Sidebar filter logic (All/Mine/Done...)
 document.querySelectorAll(".sidebar__item[data-view]").forEach((btn) => {
   btn.addEventListener("click", () => {
     document
@@ -340,134 +458,122 @@ document.querySelectorAll(".sidebar__item[data-view]").forEach((btn) => {
       .forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     ui.sidebarFilter = btn.dataset.view;
-    // Close mobile sidebar
+    
     sidebar.classList.remove("mobile-open");
     overlay.classList.remove("show");
-    renderTasks();
+    renderTasks(); // Re-render dựa trên filter mới
   });
 });
 
-/* ════════════════════════════════════════════════════
-   F. BOARD INFO LOADER
-   ════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════
-   F. BOARD INFO LOADER
-   ════════════════════════════════════════════════════ */
-function loadBoardInfo() {
-  // Lấy thẳng dữ liệu mà Django đã nhúng sẵn vào HTML
-  const name =
-    typeof DJANGO_BOARD_NAME !== "undefined"
-      ? DJANGO_BOARD_NAME
-      : `Board #${BOARD_ID}`;
-  const color =
-    typeof DJANGO_BOARD_COLOR !== "undefined" ? DJANGO_BOARD_COLOR : "#5b67f7";
-  const desc =
-    typeof DJANGO_BOARD_DESC !== "undefined" ? DJANGO_BOARD_DESC : "";
+/**
+ * Hàm phân quyền: Ẩn/Hiện nút dựa trên vai trò Owner/Member
+ */
+// task_list.js
 
-  ui.boardColor = color;
-  ui.boardName = name;
+function applyPermissions(boardData) {
+  const isOwner = boardData.is_owner; 
+  window.isOwner = isOwner; // Lưu vào biến toàn cục để dùng cho logic phím tắt và kéo thả
 
-  // Cập nhật tiêu đề trang web trên tab trình duyệt
-  document.title = `${name} — Taskly`;
+  console.log(`[Quyền hạn] Chủ sở hữu: ${isOwner}`);
 
-  // Cập nhật tên và mô tả trên giao diện chính
-  document.getElementById("pageTitle").textContent = name;
-  document.getElementById("pageSub").textContent =
-    desc || "Quản lý task cho board này";
-  document.getElementById("breadcrumbBoard").textContent = name;
-  document.getElementById("boardDot").style.background = color;
-
-  // Cập nhật thông tin ở thanh Sidebar bên trái
-  const sidebarInfo = document.getElementById("sidebarBoardInfo");
-  if (sidebarInfo) {
-    sidebarInfo.innerHTML = `
-      <div class="sidebar__board-card">
-        <span class="sidebar__board-dot" style="background:${escHtml(color)}"></span>
-        <span class="sidebar__board-name">${escHtml(name)}</span>
-      </div>`;
-  }
-
-  // Tạm thời gọi hàm này để sinh ra vài task mẫu (sau này có API sẽ xóa đi)
-  // seedSampleTasks(true);
-}
-
-/** Seed a few sample tasks the first time a board is opened */
-function seedSampleTasks(board) {
-  if (TaskDB.getAll().length > 0) return;
-  if (!board) return; // Don't seed for unknown boards
-
-  const samples = [
-    {
-      title: "Thiết kế wireframe trang chủ",
-      desc: "Tạo low-fidelity wireframe cho homepage.",
-      category: "design",
-      status: "done",
-      priority: "high",
-      dueDate: daysFromNow(-2),
-      assignee: "TN",
-    },
-    {
-      title: "Review code pull request #42",
-      desc: "Review và feedback cho PR về tính năng auth.",
-      category: "development",
-      status: "in_progress",
-      priority: "high",
-      dueDate: daysFromNow(1),
-      assignee: "ML",
-    },
-    {
-      title: "Viết test cases cho module login",
-      desc: "Viết unit test và integration test.",
-      category: "development",
-      status: "todo",
-      priority: "medium",
-      dueDate: daysFromNow(3),
-      assignee: "TN",
-    },
-    {
-      title: "Nghiên cứu đối thủ cạnh tranh",
-      desc: "Phân tích 5 đối thủ chính trong thị trường.",
-      category: "research",
-      status: "todo",
-      priority: "low",
-      dueDate: daysFromNow(7),
-      assignee: "",
-    },
-    {
-      title: "Lên kế hoạch marketing Q4",
-      desc: "Xây dựng kế hoạch content và social media.",
-      category: "marketing",
-      status: "todo",
-      priority: "medium",
-      dueDate: daysFromNow(5),
-      assignee: "KD",
-    },
-    {
-      title: "Cập nhật tài liệu API",
-      desc: "Viết lại docs cho các endpoint mới.",
-      category: "development",
-      status: "todo",
-      priority: "low",
-      dueDate: daysFromNow(10),
-      assignee: "",
-    },
+  // 1. Ẩn các nút tạo task chính
+  const elementsToHide = [
+    "btnCreateTask", 
+    "fab", 
+    "emptyCreateBtn"
   ];
 
-  const tasks = samples.map((s, i) => ({
-    id: `task-seed-${i}`,
-    boardId: BOARD_ID,
-    ...s,
-    createdAt: Date.now() - (samples.length - i) * 3600000,
-    updatedAt: Date.now() - (samples.length - i) * 1800000,
-  }));
+  elementsToHide.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isOwner ? "flex" : "none";
+  });
 
-  TaskDB.save(tasks);
+  // 2. Ẩn các mục trong Menu chuột phải (Context Menu)
+  // Lưu ý: Ẩn cả thẻ <li> (parentElement) để menu không bị hở khoảng trống
+  const ctxItems = ["ctxEdit", "ctxDelete", "ctxDuplicate"];
+  ctxItems.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.parentElement.style.display = isOwner ? "block" : "none";
+    }
+  });
+
+  // 3. Ẩn nút "Thêm task" trong các cột Kanban
+  document.querySelectorAll(".kanban-add-btn").forEach(btn => {
+    btn.style.display = isOwner ? "flex" : "none";
+  });
+
+  // 4. GIẢI PHÁP TRIỆT ĐỂ: Dùng CSS để ẩn các icon trực tiếp trên Task Card
+  // Nếu không phải chủ sở hữu, ta sẽ tiêm một đoạn CSS để ẩn hoàn toàn các nút hành động
+  let permissionStyle = document.getElementById("permission-style");
+  if (!isOwner) {
+    if (!permissionStyle) {
+      permissionStyle = document.createElement("style");
+      permissionStyle.id = "permission-style";
+      permissionStyle.innerHTML = `
+        /* Ẩn cụm icon Chỉnh sửa & Xóa trên thẻ task */
+        .task-card__actions { 
+            display: none !important; 
+        }
+        /* Ẩn nút dấu 3 chấm trên thẻ task (nếu bạn muốn thành viên chỉ xem) */
+        /* .task-card__menu { display: none !important; } */
+      `;
+      document.head.appendChild(permissionStyle);
+    }
+  } else {
+    // Nếu là chủ sở hữu (ví dụ khi chuyển board), hãy xóa style này đi
+    if (permissionStyle) permissionStyle.remove();
+  }
 }
 
-function daysFromNow(n) {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+/* ════════════════════════════════════════════════════
+   F. BOARD INFO LOADER
+   ════════════════════════════════════════════════════ */
+async function loadBoardInfo() {
+  try {
+    // 1. Fetch dữ liệu thực từ API
+    const response = await fetch(`${API_BASE}/boards/${BOARD_ID}/`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+
+    if (!response.ok) throw new Error("API response was not ok");
+    const data = await response.json();
+
+    // 2. Đồng bộ dữ liệu vào Object UI và tiêu đề
+    ui.boardName = data.name;
+    ui.boardColor = data.color || "#5b67f7";
+    const desc = data.description || "Quản lý task cho board này";
+
+    document.title = `${data.name} — Taskly`;
+    document.getElementById("pageTitle").textContent = data.name;
+    document.getElementById("pageSub").textContent = desc;
+    document.getElementById("breadcrumbBoard").textContent = data.name;
+    document.getElementById("boardDot").style.background = ui.boardColor;
+
+    // 3. Cập nhật Sidebar Board Card
+    const sidebarInfo = document.getElementById("sidebarBoardInfo");
+    if (sidebarInfo) {
+      sidebarInfo.innerHTML = `
+        <div class="sidebar__board-card">
+          <span class="sidebar__board-dot" style="background:${escHtml(ui.boardColor)}"></span>
+          <span class="sidebar__board-name">${escHtml(data.name)}</span>
+        </div>`;
+    }
+
+    // 4. KÍCH HOẠT PHÂN QUYỀN
+    applyPermissions(data);
+
+  } catch (err) {
+    console.error("Lỗi nạp thông tin board:", err);
+    
+    // FALLBACK: Dùng dữ liệu nhúng từ Django Template nếu API lỗi
+    const name = typeof DJANGO_BOARD_NAME !== "undefined" ? DJANGO_BOARD_NAME : `Board #${BOARD_ID}`;
+    const color = typeof DJANGO_BOARD_COLOR !== "undefined" ? DJANGO_BOARD_COLOR : "#5b67f7";
+    
+    document.getElementById("pageTitle").textContent = name;
+    document.getElementById("breadcrumbBoard").textContent = name;
+    document.getElementById("boardDot").style.background = color;
+  }
 }
 
 /* ════════════════════════════════════════════════════
@@ -507,8 +613,9 @@ function renderTasks() {
   }
 
   // ── Inline filters ──
-  if (ui.filterCategory)
-    tasks = tasks.filter((t) => t.category === ui.filterCategory);
+  if (ui.filterCategory) {
+    tasks = tasks.filter((t) => (t.categories || []).map(id => String(id)).includes(String(ui.filterCategory)));
+  }
   if (ui.filterStatus)
     tasks = tasks.filter((t) => t.status === ui.filterStatus);
   if (ui.filterPriority)
@@ -653,13 +760,6 @@ window.quickFilterOverdue = () => {
 /* ════════════════════════════════════════════════════
    H. TASK CARD BUILDER
    ════════════════════════════════════════════════════ */
-const CATEGORY_LABELS = {
-  design: "🎨 Design",
-  development: "💻 Dev",
-  marketing: "📣 Marketing",
-  research: "🔬 Research",
-  other: "📌 Khác",
-};
 const PRIORITY_LABELS = { high: "Cao", medium: "Trung bình", low: "Thấp" };
 const STATUS_LABELS = {
   todo: "Cần làm",
@@ -684,15 +784,18 @@ function buildTaskCard(task, idx) {
   card.draggable = true;
   card.style.animationDelay = `${Math.min(idx * 0.035, 0.4)}s`;
 
-  // Xử lý hiển thị Category (Vì ManyToMany trả về mảng)
-  const categoryHtml = Array.isArray(task.category)
-    ? task.category
-        .map(
-          (c) =>
-            `<span class="category-tag">${escHtml(CATEGORY_LABELS[c] || c)}</span>`,
-        )
-        .join("")
-    : `<span class="category-tag">${escHtml(CATEGORY_LABELS[task.category] || task.category)}</span>`;
+  // ══════════════════════════════════════════════════════════
+  // FIX: Xử lý hiển thị Category cho quan hệ ManyToMany
+  // ══════════════════════════════════════════════════════════
+  const categoryHtml = (Array.isArray(task.categories) ? task.categories : [])
+    .map(catId => {
+      const found = (ui.categories || []).find(c => c.id == catId);
+      if (!found) return ""; 
+
+      const bgColor = found.color || 'var(--accent-light)';
+      return `<span class="category-tag" style="background: ${bgColor}">${escHtml(found.name)}</span>`;
+    })
+    .join("");
 
   card.innerHTML = `
     <div class="task-card__actions">
@@ -790,83 +893,91 @@ function buildTaskCard(task, idx) {
 const drawerBackdrop = document.getElementById("drawerBackdrop");
 const drawer = document.getElementById("drawer");
 
-function openDrawer(taskId) {
-  const task = TaskDB.getAll().find((t) => t.id === taskId);
-  if (!task) return;
-  ui.openDrawerId = taskId;
+async function openDrawer(taskId) {
+  try {
+    // 1. Lưu ID đang mở để các nút Sửa/Xóa hoạt động
+    ui.openDrawerId = taskId;
 
-  const dl = deadlineInfo(task);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    // 2. Gọi API lấy chi tiết
+    const task = await TaskAPI.get(taskId);
+    console.log("Dữ liệu Task nhận được:", task); // Debug để kiểm tra dữ liệu
 
-  document.getElementById("drawerTitle").textContent = task.title;
+    if (!task) return;
 
-  document.getElementById("drawerBody").innerHTML = `
-    <div class="drawer-meta-grid">
-      <div class="drawer-section">
-        <p class="drawer-section__label">Trạng thái</p>
-        <span class="status-badge status-badge--${escHtml(task.status)}">
-          ${task.status === "done" ? "✅" : task.status === "in_progress" ? "🔵" : "⬜"}
-          ${escHtml(STATUS_LABELS[task.status] || task.status)}
-        </span>
+    const drawerBody = document.getElementById("drawerBody");
+    
+    // 3. Xử lý hiển thị danh mục (Dùng 'categories' vì to_representation đã đổi tên)
+    const categoriesData = task.categories || task.category || [];
+    const categoriesHtml = (Array.isArray(categoriesData) ? categoriesData : [])
+      .map(id => {
+        const found = (ui.categories || []).find(c => c.id == id);
+        return found 
+          ? `<span class="category-tag" style="background:${found.color || 'var(--accent-light)'}">${escHtml(found.name)}</span>`
+          : "";
+      })
+      .join(" ");
+
+    // 4. Đổ dữ liệu vào HTML (Sử dụng tên trường khớp với Serializer)
+    drawerBody.innerHTML = `
+      <div class="drawer-header-info">
+        <h2 class="drawer-title">${escHtml(task.title || "Không có tiêu đề")}</h2>
       </div>
+
       <div class="drawer-section">
-        <p class="drawer-section__label">Ưu tiên</p>
-        <span class="priority-badge priority-badge--${escHtml(task.priority)}">
-          ${task.priority === "high" ? "🔴" : task.priority === "medium" ? "🟡" : "🟢"}
-          ${escHtml(PRIORITY_LABELS[task.priority] || task.priority)}
-        </span>
+        <p class="drawer-section__label">Mô tả</p>
+        <p class="drawer-section__value">${escHtml(task.desc || "Không có mô tả")}</p>
       </div>
-      <div class="drawer-section">
-        <p class="drawer-section__label">Danh mục</p>
-        <span class="category-tag">${escHtml(CATEGORY_LABELS[task.category] || task.category)}</span>
-      </div>
-      <div class="drawer-section">
-        <p class="drawer-section__label">Người thực hiện</p>
-        <div class="task-card__assignee">
-          ${
-            task.assignee
-              ? `<span class="assignee-av">${escHtml(task.assignee.substring(0, 2).toUpperCase())}</span>
-               <span class="drawer-section__value">${escHtml(task.assignee)}</span>`
-              : `<span class="drawer-section__value muted">Chưa giao</span>`
-          }
+
+      <div class="drawer-grid">
+        <div class="drawer-section">
+          <p class="drawer-section__label">Trạng thái</p>
+          <span class="status-badge status-badge--${task.status}">
+            ${(typeof STATUS_LABELS !== 'undefined' ? STATUS_LABELS[task.status] : task.status) || "N/A"}
+          </span>
+        </div>
+        <div class="drawer-section">
+          <p class="drawer-section__label">Ưu tiên</p>
+          <span class="priority-badge priority-badge--${task.priority}">
+            ${(typeof PRIORITY_LABELS !== 'undefined' ? PRIORITY_LABELS[task.priority] : task.priority) || "N/A"}
+          </span>
         </div>
       </div>
-    </div>
 
-    <div class="drawer-section">
-      <p class="drawer-section__label">Mô tả</p>
-      <p class="drawer-section__value ${task.desc ? "" : "muted"}">
-        ${task.desc ? escHtml(task.desc) : "Không có mô tả."}
-      </p>
-    </div>
+      <div class="drawer-section">
+        <p class="drawer-section__label">Danh mục</p>
+        <div class="drawer-categories">
+          ${categoriesHtml || '<span style="color:var(--text-light)">Chưa phân loại</span>'}
+        </div>
+      </div>
 
-    <div class="drawer-section">
-      <p class="drawer-section__label">Deadline</p>
-      ${
-        task.dueDate
-          ? `<p class="drawer-section__value">${fmtDate(task.dueDate)}</p>
-           ${
-             dl
-               ? `<div class="countdown-chip countdown-chip--${dl.cls}">
-             <i class="ph-bold ${dl.icon}"></i>${escHtml(dl.label)}
-           </div>`
-               : ""
-           }`
-          : `<p class="drawer-section__value muted">Chưa đặt deadline</p>`
-      }
-    </div>
+      <div class="drawer-section">
+        <p class="drawer-section__label">Hạn chót</p>
+        <p class="drawer-section__value">
+          <i class="ph-bold ph-calendar"></i> 
+          ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : "Không có"}
+        </p>
+      </div>
 
-    <div class="drawer-section">
-      <p class="drawer-section__label">Thời gian</p>
-      <p class="drawer-section__value" style="font-size:.8rem;color:var(--text-muted)">
-        Tạo: ${new Date(task.createdAt).toLocaleString("vi-VN")}<br/>
-        Cập nhật: ${new Date(task.updatedAt).toLocaleString("vi-VN")}
-      </p>
-    </div>`;
+      <div class="drawer-section">
+        <p class="drawer-section__label">Người thực hiện</p>
+        <div class="drawer-assignee">
+          <div class="assignee-av">${escHtml((task.assignee || "??").substring(0, 2).toUpperCase())}</div>
+          <span>${escHtml(task.assignee || "Chưa giao")}</span>
+        </div>
+      </div>
+    `;
 
-  drawerBackdrop.classList.add("open");
-  drawerBackdrop.setAttribute("aria-hidden", "false");
+    // 5. Hiển thị Drawer (Sửa ID cho khớp với HTML)
+    const drawerEl = document.getElementById("drawer");
+    const backdropEl = document.getElementById("drawerBackdrop");
+
+    if (drawerEl) drawerEl.classList.add("open");
+    if (backdropEl) backdropEl.classList.add("open");
+
+  } catch (err) {
+    console.error("Lỗi chi tiết Drawer:", err);
+    showToast("Không thể tải chi tiết công việc", "error");
+  }
 }
 
 function closeDrawer() {
@@ -994,10 +1105,13 @@ modalSubmit.addEventListener("click", async () => {
     return;
   }
 
+  const categorySelect = document.getElementById("taskCategory");
+  const selectedCategories = categorySelect.value ? [categorySelect.value] : [];
+
   const data = {
     title: taskTitleInput.value.trim(),
     desc: document.getElementById("taskDesc").value.trim(),
-    category: document.getElementById("taskCategory").value,
+    category: selectedCategories,
     status: document.getElementById("taskStatus").value,
     priority: document.getElementById("taskPriority").value,
     dueDate: document.getElementById("taskDueDate").value,
@@ -1013,7 +1127,7 @@ modalSubmit.addEventListener("click", async () => {
       showToast("Tạo task thành công!", "success");
     }
     closeModal();
-    await fetchAndRenderTasks(); // Tải lại dữ liệu từ server
+    await fetchAndRenderTasks();
   } catch {
     showToast("Có lỗi xảy ra khi lưu", "error");
   }
@@ -1385,10 +1499,9 @@ document.addEventListener("keydown", (e) => {
 /* ════════════════════════════════════════════════════
    P. INIT
    ════════════════════════════════════════════════════ */
-// 1. Tải thông tin giao diện Board
 loadBoardInfo();
-
-// 2. Tải dữ liệu Task từ Django. Chờ tải xong (.then) mới hiện thông báo
+fetchAndPopulateCategories();
+initHeaderProfile();
 fetchAndRenderTasks().then(() => {
   // Greeting on first load
   if (!sessionStorage.getItem("taskly-task-greeted")) {

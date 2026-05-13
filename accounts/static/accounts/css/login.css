@@ -26,7 +26,8 @@
 
   --panel-bg: #1a1d2e; /* dark left panel */
 
-  --font-display: "Syne", sans-serif;
+  /* --font-display: "Syne", sans-serif; */
+  --font-display: "Inter", sans-serif;
   --font-body: "Outfit", sans-serif;
 
   --r-sm: 8px;

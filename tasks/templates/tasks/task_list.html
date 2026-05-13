@@ -8,19 +8,16 @@
     <!-- Reuse shared layout styles from board_list -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/board_list.css' %}?v=999"
+      href="{% static 'tasks/css/board_list.css' %}?v=5555"
     />
     <!-- Task-specific styles (extend, never override layout) -->
     <link
       rel="stylesheet"
-      href="{% static 'tasks/css/task_list.css' %}?v=999"
+      href="{% static 'tasks/css/task_list.css' %}?v=5555"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script
       src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"
       defer
@@ -70,31 +67,40 @@
           <i class="ph-bold ph-sun" id="iconSun"></i>
           <i class="ph-bold ph-moon" id="iconMoon"></i>
         </button>
-        <button class="icon-btn notif-btn" aria-label="Thông báo">
+        {% comment %} <button class="icon-btn notif-btn" aria-label="Thông báo">
           <i class="ph-bold ph-bell"></i>
           <span class="notif-dot"></span>
-        </button>
+        </button> {% endcomment %}
+        {% if is_owner %}
         <button class="btn btn--primary" id="btnCreateTask">
-          <i class="ph-bold ph-plus"></i>
-          Tạo Task
+            <i class="ph-bold ph-plus"></i> Tạo Task
         </button>
+        {% endif %}
         <div class="user-menu" id="userMenuWrap">
-          <button class="user-avatar" id="userAvatarBtn" aria-expanded="false">
-            <span id="userInitials">TN</span>
+          <button class="user-avatar" id="userAvatarBtn" aria-label="Menu người dùng" aria-expanded="false">
+              <img id="headerAvatarImg" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;" src="" alt="Avatar">
+              
+              <span id="userInitials">{{ user.username|slice:":2"|upper }}</span>
           </button>
           <div class="user-dropdown" id="userDropdown" role="menu">
             <div class="user-dropdown__header">
-              <span class="ud-name" id="udName">Taskly User</span>
-              <span class="ud-email" id="udEmail">user@taskly.vn</span>
+              <span class="ud-name" id="udName">{{ user.username }}</span>
+              <span class="ud-email" id="udEmail">{{ user.email }}</span>
             </div>
             <hr class="ud-divider" />
-            <button class="ud-item">
-              <i class="ph-bold ph-user-circle"></i> Hồ sơ
+            <button>
+              <a href="{% url 'profile' %}" class="ud-item" role="menuitem">
+                <i class="ph-bold ph-user-circle"></i>
+                Hồ sơ
+              </a>
             </button>
-            <button class="ud-item">
+            {% comment %} <button class="ud-item" role="menuitem">
               <i class="ph-bold ph-gear"></i> Cài đặt
             </button>
-            <hr class="ud-divider" />
+            <button class="ud-item" role="menuitem">
+              <i class="ph-bold ph-question"></i> Trợ giúp
+            </button>
+            <hr class="ud-divider" /> {% endcomment %}
             <button class="ud-item ud-item--danger" id="btnLogout">
               <i class="ph-bold ph-sign-out"></i> Đăng xuất
             </button>
@@ -180,13 +186,13 @@
             <div class="task-progress-mini">
               <div class="task-progress-mini__label">
                 <span>Tiến độ board</span>
-                <span id="progressPct">0%</span>
+                <span id="progressPct">100%</span>
               </div>
               <div class="storage-bar__track">
                 <div
                   class="storage-bar__fill"
                   id="progressBar"
-                  style="width: 0%"
+                  style="width: 100%"
                 ></div>
               </div>
             </div>
@@ -272,11 +278,6 @@
           <div class="filter-bar__inner">
             <select class="filter-select" id="filterCategory">
               <option value="">Tất cả danh mục</option>
-              <option value="design">Design</option>
-              <option value="development">Development</option>
-              <option value="marketing">Marketing</option>
-              <option value="research">Research</option>
-              <option value="other">Khác</option>
             </select>
             <select class="filter-select" id="filterStatus">
               <option value="">Tất cả trạng thái</option>
@@ -405,9 +406,11 @@
           <p class="empty-state__desc" id="emptyDesc">
             Bắt đầu bằng cách tạo task đầu tiên cho board này.
           </p>
+          {% if is_owner %}
           <button class="btn btn--primary" id="emptyCreateBtn">
-            <i class="ph-bold ph-plus"></i> Tạo task đầu tiên
+              <i class="ph-bold ph-plus"></i> Tạo task đầu tiên
           </button>
+          {% endif %}
           <div class="empty-shortcuts">
             <kbd>Ctrl</kbd> + <kbd>N</kbd> để tạo nhanh
           </div>
@@ -417,9 +420,11 @@
     <!-- /.app-layout -->
 
     <!-- FAB (mobile) -->
+    {% if is_owner %}
     <button class="fab" id="fab" aria-label="Tạo task mới">
-      <i class="ph-bold ph-plus"></i>
+        <i class="ph-bold ph-plus"></i>
     </button>
+    {% endif %}
 
     <!-- ══════════════════════════════════════════════════════
      MODAL — Create / Edit Task
@@ -477,12 +482,7 @@
             <div class="mfield">
               <label class="mfield__label" for="taskCategory">Danh mục</label>
               <select id="taskCategory" class="mfield__input mfield__select">
-                <option value="design">🎨 Design</option>
-                <option value="development">💻 Development</option>
-                <option value="marketing">📣 Marketing</option>
-                <option value="research">🔬 Research</option>
-                <option value="other">📌 Khác</option>
-              </select>
+                </select>
             </div>
             <div class="mfield">
               <label class="mfield__label" for="taskPriority">Ưu tiên</label>
@@ -604,6 +604,6 @@
       const DJANGO_BOARD_DESC = "{{ board.desc|escapejs }}";
     </script>
 
-    <script src="{% static 'tasks/js/task_list.js' %}?v=999"></script>
+    <script src="{% static 'tasks/js/task_list.js' %}?v=5555"></script>
   </body>
 </html>
